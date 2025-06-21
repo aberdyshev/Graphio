@@ -2,3 +2,4 @@ gradio
 numpy
 scipy
 pandas
+plotly
