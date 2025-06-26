@@ -433,13 +433,13 @@ def update_plot_and_fit(
         extrapolation_output = ""
         info_msg = ""
         
-        # Create default slider for error cases
-        default_slider = gr.Slider(minimum=0, maximum=10, step=1, value=3, label="Polynomial Degree (n)")
-
         x_data = np.array([])
         y_data = np.array([])
         z_data = None
         data_source_message = ""
+
+        # Create default slider for error cases
+        default_slider = gr.Slider(minimum=0, maximum=len((x_data)-1), step=1, value=3, label="Polynomial Degree (n)")
 
         # --- Data Source Determination ---
         if file_df is not None and x_col_name and y_col_name:

@@ -497,6 +497,43 @@ def update_plot_and_fit(
             scatter_params['marker']['colorbar'] = dict(title="Z Values")
             scatter_params['name'] = f'Data (colored by Z)'
         
+            def validate_data_length(x_data, y_data):
+            
+        #  Проверяет соответствие количества значений X и Y.
+        #    Возвращает сообщение об ошибке, если размеры не совпадают.
+            
+                error_msgt = None
+            
+                # Определяем длины массивов
+                x_len = len(x_data)
+                y_len = len(y_data)
+            
+                # Проверяем соответствие размеров
+                if x_len != y_len:
+                    error_msgt = "❌ Ошибка: количество значений не совпадает!\n"
+                
+                    # Определяем, каких данных не хватает
+                    if x_len > y_len:
+                        missing_count = x_len - y_len
+                        error_msgt += f" - Не хватает {missing_count} значений Y (имеется {y_len}, требуется {x_len})"
+                    else:
+                        missing_count = y_len - x_len
+                        error_msgt += f" - Не хватает {missing_count} значений X (имеется {x_len}, требуется {y_len})"
+                    
+                    # Показываем первые несколько элементов для диагностики
+                    error_msgt += "\n\nПримеры данных:\n"
+                    error_msgt += f"X: {x_data[:min(5, x_len)]}\n"
+                    error_msgt += f"Y: {y_data[:min(5, y_len)]}"
+                    
+                return error_msgt
+
+       
+        error_message = validate_data_length(x_data, y_data)
+        if error_message:
+            print(error_message)
+        else:
+            print("Данные корректны, можно строить график")
+
         # Add error bars if available
         if show_error_bars and (x_errors is not None or y_errors is not None):
             if x_errors is not None:
