@@ -198,7 +198,7 @@ def create_gradio_interface():
                         area_output = gr.Textbox(
                             label="Area Under Curve", 
                             interactive=False, 
-                            lines=10,
+                            lines=15,
                             show_label=False
                         )
                     

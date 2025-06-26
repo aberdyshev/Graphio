@@ -496,7 +496,44 @@ def update_plot_and_fit(
             scatter_params['marker']['showscale'] = True
             scatter_params['marker']['colorbar'] = dict(title="Z Values")
             scatter_params['name'] = f'Data (colored by Z)'
-        
+        '''
+            def validate_data_length(x_data, y_data):
+           
+        #  Проверяет соответствие количества значений X и Y.
+        #    Возвращает сообщение об ошибке, если размеры не совпадают.
+            
+                error_msgt = None
+            
+                # Определяем длины массивов
+                x_len = len(x_data)
+                y_len = len(y_data)
+            
+                # Проверяем соответствие размеров
+                if x_len != y_len:
+                    error_msgt = "❌ Ошибка: количество значений не совпадает!\n"
+                
+                    # Определяем, каких данных не хватает
+                    if x_len > y_len:
+                        missing_count = x_len - y_len
+                        error_msgt += f" - Не хватает {missing_count} значений Y (имеется {y_len}, требуется {x_len})"
+                    else:
+                        missing_count = y_len - x_len
+                        error_msgt += f" - Не хватает {missing_count} значений X (имеется {x_len}, требуется {y_len})"
+                    
+                    # Показываем первые несколько элементов для диагностики
+                    error_msgt += "\n\nПримеры данных:\n"
+                    error_msgt += f"X: {x_data[:min(5, x_len)]}\n"
+                    error_msgt += f"Y: {y_data[:min(5, y_len)]}"
+                    
+                return error_msgt
+
+       
+        error_message = validate_data_length(x_data, y_data)
+        if error_message:
+            print(error_message)
+        else:
+            print("Данные корректны, можно строить график")
+         '''
         # Add error bars if available
         if show_error_bars and (x_errors is not None or y_errors is not None):
             if x_errors is not None:
@@ -824,13 +861,14 @@ def update_combined_plot(
         if not visible_curves:
             return None, "❌ No visible datasets", "", "", "", ""
         
-        fig = go.Figure()
-        all_x_data = []
+        fig = go.Figure() #Пустая фигура
+        all_x_data = []  #Пустые списки
         all_y_data = []
         curve_data = []
         
+
         # Process each visible curve
-        for i, config in enumerate(visible_curves):
+        for i, config in enumerate(visible_curves):            # Проходимся по видимым прямым
             x_data, y_data, z_data = [], [], None
             current_curve_info_msg = ""
             
@@ -838,12 +876,12 @@ def update_combined_plot(
             if config.get('file_df') is not None and config.get('x_col_name') and config.get('y_col_name'): # Use .get for safety
                 try:
                     file_df_actual = config['file_df'] # Already a DataFrame
-                    x_data_series = pd.to_numeric(file_df_actual[config['x_col_name']], errors='coerce')
+                    x_data_series = pd.to_numeric(file_df_actual[config['x_col_name']], errors='coerce')             # Если данные есть и колонки не пусты
                     y_data_series = pd.to_numeric(file_df_actual[config['y_col_name']], errors='coerce')
                     
                     # Handle Z column if provided
                     z_data_series = None
-                    if config.get('z_col_name') and config['z_col_name'] in file_df_actual.columns:
+                    if config.get('z_col_name') and config['z_col_name'] in file_df_actual.columns:                    # Если Z включён
                         z_data_series = pd.to_numeric(file_df_actual[config['z_col_name']], errors='coerce')
 
                     # Create combined dataframe and remove rows with NaN
@@ -859,7 +897,7 @@ def update_combined_plot(
                             'x': x_data_series, 
                             'y': y_data_series
                         }).dropna()
-                        z_data = None # Ensure z_data is None if not present or not valid
+                        z_data = None # Ensure z_data is None if not present or not valid                           # соеденили всё в одно datdframe
                     
                     x_data = combined_df['x'].to_numpy()
                     y_data = combined_df['y'].to_numpy()
@@ -870,14 +908,14 @@ def update_combined_plot(
             else:
                 # Parse manual input data
                 x_parsed, x_error = parse_input_data(config.get('x_text', ''))
-                y_parsed, y_error = parse_input_data(config.get('y_text', ''))
+                y_parsed, y_error = parse_input_data(config.get('y_text', ''))              # Получаем чисолвые массивы
                 z_parsed, z_error = parse_input_data(config.get('z_text', ''))
                 
                 if not x_error and not y_error and len(x_parsed) > 0 and len(y_parsed) > 0 and len(x_parsed) == len(y_parsed):
                     x_data, y_data = x_parsed, y_parsed
                     
                     # Handle Z data for manual input
-                    if not z_error and len(z_parsed) > 0:
+                    if not z_error and len(z_parsed) > 0:                         # Для Z
                         if len(z_parsed) == len(x_data):
                             z_data = z_parsed
                         # If Z data length doesn't match, ignore it but don't fail
@@ -903,7 +941,7 @@ def update_combined_plot(
                     # Apply layout customizations for 3D
                     _configure_plot_layout(surface_fig, plot_options, xaxis_scale, yaxis_scale, custom_x_label, custom_y_label, 
                                           f"{config.get('name', 'Plot')} - 3D Surface", font_family, title_font_size, axes_font_size, legend_font_size, 
-                                          font_color, x_data, y_data, current_curve_info_msg)
+                                          font_color, x_data, y_data, current_curve_info_msg)  #настройка визуального оформления графика -> 
                     
                     return (
                         surface_fig,
@@ -930,7 +968,7 @@ def update_combined_plot(
             all_y_data.extend(y_data)
             
             # Add data points if enabled
-            if config.get('show_data', True):
+            if config.get('show_data', True):                    # Не получился 3D график => строим 2D
                 scatter_params = {
                     'x': x_data,
                     'y': y_data,
@@ -944,17 +982,17 @@ def update_combined_plot(
                     scatter_params['marker']['color'] = z_data
                     scatter_params['marker']['colorscale'] = 'Viridis'
                     scatter_params['marker']['showscale'] = True
-                    scatter_params['marker']['colorbar'] = dict(title=f"Z ({config.get('name', f'Curve {i+1}')})")
+                    scatter_params['marker']['colorbar'] = dict(title=f"Z ({config.get('name', f'Curve {i+1}')})")    # Раскрашиваем точки под Z
                     scatter_params['name'] = f"{config.get('name', f'Curve {i+1}')} - Data (Z-color)"
                 
                 # Add error bars if configured
                 if config.get('show_error_bars', False):
                     x_errors_text = config.get('x_errors_text', '')
                     y_errors_text = config.get('y_errors_text', '')
-                    x_errors, _ = parse_input_data(x_errors_text) if x_errors_text.strip() else ([], None)
+                    x_errors, _ = parse_input_data(x_errors_text) if x_errors_text.strip() else ([], None)   #парсинг погрешностей
                     y_errors, _ = parse_input_data(y_errors_text) if y_errors_text.strip() else ([], None)
                     
-                    error_added = False
+                    error_added = False                                                  # выключены ерроры
                     if x_errors is not None and len(x_errors) == len(x_data):
                         scatter_params['error_x'] = dict(
                             type='data', array=x_errors, color=config.get('data_color', '#1f77b4'), thickness=1.5, width=3
@@ -968,7 +1006,7 @@ def update_combined_plot(
                     if error_added:
                          scatter_params['name'] += ' (errors)'
                 
-                fig.add_trace(go.Scatter(**scatter_params))
+                fig.add_trace(go.Scatter(**scatter_params))    # Точечный график
             
             # Add fitted curve if enabled
             if config.get('show_fit', True) and config.get('fit_type') == 'polynomial': # Only polynomial for combined plot for now
@@ -985,6 +1023,8 @@ def update_combined_plot(
                             x_fit = np.array([x_data[0]])
                             
                         y_fit = fit_func(x_fit)
+
+
                         
                         # Check for numerical issues
                         if not (np.any(np.isnan(y_fit)) or np.any(np.isinf(y_fit))):
@@ -995,6 +1035,7 @@ def update_combined_plot(
                                 name=f"{config.get('name', f'Curve {i+1}')} - Fit (deg {degree})",
                                 line=dict(color=config.get('fit_color', '#ff7f0e'), dash=config.get('fit_line_style', 'solid'), width=2)
                             ))
+
                             
                             # Calculate R-squared
                             if len(x_data) > 1:
@@ -1011,8 +1052,110 @@ def update_combined_plot(
                     statistics_output += f"\n⚠️ Error fitting polynomial for {config.get('name', 'Unnamed Curve')}: {str(e)}"
                     pass  # Ignore fitting errors for individual curves
         
+        
+
+
+
         if not curve_data: # If all curves were skipped due to errors or no data
             return None, "❌ No valid data found in any visible dataset.", "", statistics_output, "", ""
+
+         # Calculate combined statistics
+        if all_x_data and all_y_data:
+            all_x_array = np.array(all_x_data)
+            all_y_array = np.array(all_y_data)
+            
+            stats, _ = calculate_statistics(all_x_array, all_y_array)
+            if stats:
+                statistics_output = f"📊 **Combined Statistics** ({len(curve_data)} datasets, {stats['n_points']} total points)\n\n"
+                statistics_output += format_statistics_output(stats)
+                
+                # Add individual dataset info
+                statistics_output += "\n\n📋 **Individual Datasets:**\n"
+                for curve in curve_data:
+                    config = curve['config']
+                    dataset_stats, _ = calculate_statistics(curve['x_data'], curve['y_data'])
+                    if dataset_stats:
+                        r_sq_info = f" (R² = {config.get('r_squared', 0):.4f})" if config.get('r_squared') else ""
+                        z_info = " [with Z-data]" if curve['z_data'] is not None else ""
+                        statistics_output += f"• **{config['name']}**: {dataset_stats['n_points']} points{r_sq_info}{z_info}\n"
+                        if 'equation' in config:
+                            statistics_output += f"  Equation: {config['equation']}\n"
+                        elif config.get('fit_type') == 'polynomial':
+                            # Если уравнение не сохранено, но это полином, вычислите его
+                            degree = min(config.get('degree', 1), len(curve['x_data']) - 1)
+                            coeffs = np.polyfit(curve['x_data'], curve['y_data'], degree)
+                            equation = format_polynomial(coeffs, degree)
+                            statistics_output += f"  Equation: {equation}\n"
+                        if config.get('equation'):
+                            statistics_output += f"  {config['equation']}\n"
+                        
+                        # Add Z statistics if available
+                        if curve['z_data'] is not None:
+                            z_stats = f"  Z-data: Mean = {np.mean(curve['z_data']):.4f}, Range = [{np.min(curve['z_data']):.4f}, {np.max(curve['z_data']):.4f}]\n"
+                            statistics_output += z_stats
+
+        # Add extrapolation for first visible curve
+        if show_extrapolation and curve_data:
+            first_curve = curve_data[0]
+            try:
+                degree = min(first_curve['config']['degree'], len(first_curve['x_data']) - 1)
+                coeffs = np.polyfit(first_curve['x_data'], first_curve['y_data'], degree)
+                fit_func = np.poly1d(coeffs)
+                
+                step_size = extrapolation_step_size if extrapolation_step_size and extrapolation_step_size > 0 else None
+                x_extrap, y_extrap, extrap_error = calculate_extrapolation(
+                    fit_func, first_curve['x_data'], n_extrapolation_steps, step_size
+                )
+                
+                if not extrap_error and x_extrap is not None:
+                    extrapolation_output = format_extrapolation_output(x_extrap, y_extrap, n_extrapolation_steps)
+                    extrapolation_output = f"🔮 **Extrapolation** (based on {first_curve['name']})\n\n" + extrapolation_output
+                    
+                    # Add extrapolation to plot
+                    fig.add_trace(go.Scatter(
+                        x=x_extrap, y=y_extrap, mode='markers+lines',
+                        name=f'Extrapolation ({first_curve["name"]})',
+                        marker=dict(color='purple', size=6, symbol='diamond'),
+                        line=dict(color='purple', dash='dot', width=2),
+                        opacity=0.8
+                    ))
+            except:
+                pass
+        
+        if not extrapolation_output:
+            extrapolation_output = "🔮 **Extrapolation**: Enable to predict future values (based on first dataset)"
+        
+        # Add area calculation for first curve
+        if show_area and area_start_x is not None and area_end_x is not None and curve_data:
+            first_curve = curve_data[0]
+            try:
+                start_x, end_x = float(area_start_x), float(area_end_x)
+                if start_x < end_x:
+                    degree = min(first_curve['config']['degree'], len(first_curve['x_data']) - 1)
+                    coeffs = np.polyfit(first_curve['x_data'], first_curve['y_data'], degree)
+                    fit_func = np.poly1d(coeffs)
+                    
+                    area_value, area_error = calculate_area_under_curve(fit_func, start_x, end_x)
+                    if not area_error:
+                        area_output = f"📐 **Area Under Curve** (based on {first_curve['name']})\n\n"
+                        area_output += format_area_output(area_value, start_x, end_x, fit_func)
+                        
+                        # Add area visualization
+                        x_area = np.linspace(start_x, end_x, 200)
+                        y_area = fit_func(x_area)
+                        
+                        fig.add_trace(go.Scatter(
+                            x=x_area, y=y_area, fill='tozeroy',
+                            fillcolor='rgba(255, 0, 0, 0.2)',
+                            line=dict(color='rgba(255, 0, 0, 0.5)', width=1),
+                            name=f'Area: {area_value:.4f}',
+                            hovertemplate='X: %{x:.4f}<br>Y: %{y:.4f}<br>Area Region<extra></extra>'
+                        ))
+            except:
+                pass
+        
+        if not area_output:
+            area_output = "📐 **Area Calculation**: Enable to calculate area under curve (based on first dataset)"
 
         # --- Finalize Layout and Return ---
         # Common layout adjustments for combined plots
@@ -1025,6 +1168,28 @@ def update_combined_plot(
             final_message = "✅ **Combined Plot**: Plotted available valid datasets. Some datasets had issues (see details below)."
         else:
             final_message = "✅ **Combined Plot**: Multiple datasets plotted successfully."
+
+
+        if x_for_derivative is not None and curve_data:
+            first_curve = curve_data[0]
+            if first_curve['config'].get('fit_type') == 'polynomial':
+                try:
+                    degree = min(first_curve['config'].get('degree', 1), 
+                                len(first_curve['x_data']) - 1)
+                    coeffs = np.polyfit(first_curve['x_data'], first_curve['y_data'], degree)
+                    fit_func = np.poly1d(coeffs)
+                    derivative_text_output = _calculate_derivative(
+                        fig, fit_func, x_for_derivative, 
+                        first_curve['x_data'], degree
+                    )
+                    # Добавим значение функции в точке
+                    y_at_point = fit_func(float(x_for_derivative))
+                    derivative_text_output += f"\n• f({x_for_derivative}) = {y_at_point:.3f}"
+                except Exception as e:
+                    derivative_text_output = f"❌ Error: {str(e)}"
+            else:
+                derivative_text_output = f"ℹ️ Derivatives only for polynomial fits (current: {first_curve['config'].get('fit_type')})"
+
 
         return fig, final_message, derivative_text_output, statistics_output, area_output, extrapolation_output
     
