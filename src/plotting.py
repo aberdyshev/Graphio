@@ -147,512 +147,6 @@ def _create_3d_surface_plot(x_data, y_data, z_data, x_errors=None, y_errors=None
     
     return fig
 
-def update_plot_and_fit(
-    x_text, y_text, degree, plot_options,
-    xaxis_scale, yaxis_scale, special_points_show, x_for_derivative,
-    data_color, fit_color, data_marker, fit_line_style,
-    custom_x_label, custom_y_label, custom_title,
-    font_family, title_font_size, axes_font_size, legend_font_size, font_color,
-    area_start_x, area_end_x, show_area,
-    fit_type, n_extrapolation_steps, extrapolation_step_size, show_extrapolation,
-    x_errors_text, y_errors_text, show_error_bars,
-    file_df, x_col_name, y_col_name, z_col_name, # Existing file/column params
-    force_3d=False  # New parameter for explicit 3D plot request
-):
-    """Enhanced function with file upload, column selection, Z-component, and explicit 3D plot support."""
-    import gradio as gr
-    
-    try:
-        derivative_text_output = ""
-        statistics_output = ""
-        area_output = ""
-        extrapolation_output = ""
-        info_msg = ""
-        equation_str = ""
-        fit_params_str = ""
-        area_str = ""
-        
-        # Create default slider for error cases
-        default_slider = gr.Slider(minimum=0, maximum=10, step=1, value=3, label="Polynomial Degree (n)")
-
-        x_data = np.array([])
-        y_data = np.array([])
-        z_data = None
-        data_source_message = ""
-
-        # --- Data Source Determination ---
-        if file_df is not None and x_col_name and y_col_name:
-            try:
-                # File-based data processing
-                x_data_series = pd.to_numeric(file_df[x_col_name], errors='coerce')
-                y_data_series = pd.to_numeric(file_df[y_col_name], errors='coerce')
-                
-                # Handle Z column if specified
-                z_data_series = None
-                if z_col_name and z_col_name in file_df.columns:
-                    z_data_series = pd.to_numeric(file_df[z_col_name], errors='coerce')
-                
-                # Create combined dataframe without NaN values
-                if z_data_series is not None:
-                    df = pd.DataFrame({'x': x_data_series, 'y': y_data_series, 'z': z_data_series})
-                    original_rows = len(df)
-                    df = df.dropna()
-                    valid_rows = len(df)
-                    x_data = df['x'].to_numpy()
-                    y_data = df['y'].to_numpy()
-                    z_data = df['z'].to_numpy()
-                else:
-                    df = pd.DataFrame({'x': x_data_series, 'y': y_data_series})
-                    original_rows = len(df)
-                    df = df.dropna()
-                    valid_rows = len(df)
-                    x_data = df['x'].to_numpy()
-                    y_data = df['y'].to_numpy()
-                
-                # Create informative message
-                cols_used = f"X='{x_col_name}', Y='{y_col_name}'"
-                if z_col_name:
-                    cols_used += f", Z='{z_col_name}'"
-                
-                data_source_message = f"📊 **File Data**: Loaded {valid_rows} valid data points from file.\n📋 **Columns**: {cols_used}"
-                
-                if valid_rows < original_rows:
-                    dropped = original_rows - valid_rows
-                    data_source_message += f"\n⚠️ **Dropped**: {dropped} rows due to non-numeric/missing values."
-
-                # File data ignores manual error inputs
-                x_errors = None
-                y_errors = None
-                error_info = "ℹ️ Error bars from manual input are ignored when using file data." if show_error_bars else ""
-
-            except Exception as e:
-                return None, f"�� **File Processing Error**: {str(e)}", "", "", statistics_output, "", default_slider
-                
-        else:
-            # Parse from manual text inputs
-            x_data_parsed, x_error_msg = parse_input_data(x_text)
-            y_data_parsed, y_error_msg = parse_input_data(y_text)
-
-            if x_error_msg:
-                return None, f"🔴 **X Data Error**: {x_error_msg}", "", "", "", "", default_slider
-            if y_error_msg:
-                return None, f"🔴 **Y Data Error**: {y_error_msg}", "", "", "", "", default_slider
-            
-            x_data, y_data = x_data_parsed, y_data_parsed
-            data_source_message = "📝 **Manual Input**: Using data from text fields."
-
-            # Parse Z data for manual input
-            if z_col_name:  # This would be from z_input in manual mode
-                z_parsed, z_error = parse_input_data(z_col_name)  # z_col_name is actually z_text in this context
-                if not z_error and len(z_parsed) > 0:
-                    if len(z_parsed) == len(x_data):
-                        z_data = z_parsed
-                    else:
-                        data_source_message += f"\n⚠️ Z data length ({len(z_parsed)}) doesn't match X/Y data length ({len(x_data)}), ignoring Z data."
-
-            # Parse error data for manual input
-            x_errors = None
-            y_errors = None
-            error_info = ""
-            
-            if show_error_bars:
-                if x_errors_text and x_errors_text.strip():
-                    x_errors_data, x_errors_err_msg = parse_input_data(x_errors_text)
-                    if x_errors_err_msg:
-                        error_info += f"⚠️ X errors: {x_errors_err_msg}\n"
-                    elif len(x_errors_data) != len(x_data):
-                        error_info += f"⚠️ X errors length ({len(x_errors_data)}) ≠ data length ({len(x_data)})\n"
-                    else:
-                        x_errors = x_errors_data
-                
-                if y_errors_text and y_errors_text.strip():
-                    y_errors_data, y_errors_err_msg = parse_input_data(y_errors_text)
-                    if y_errors_err_msg:
-                        error_info += f"⚠️ Y errors: {y_errors_err_msg}\n"
-                    elif len(y_errors_data) != len(y_data):
-                        error_info += f"⚠️ Y errors length ({len(y_errors_data)}) ≠ data length ({len(y_data)})\n"
-                    else:
-                        y_errors = y_errors_data
-
-        # --- Input Validation ---
-        if len(x_data) == 0:
-            return None, "🔴 **Empty Data**: No valid X values found.", "", "", "", "", default_slider
-        if len(y_data) == 0:
-            return None, "🔴 **Empty Data**: No valid Y values found.", "", "", "", "", default_slider
-        
-        if len(x_data) != len(y_data):
-            return None, f"🔴 **Data Length Mismatch**: X has {len(x_data)} values, Y has {len(y_data)} values.\n*Both arrays must have the same length.*", "", "", "", "", default_slider
-
-        # Calculate statistics
-        stats, _ = calculate_statistics(x_data, y_data)
-        if stats:
-            statistics_output = format_statistics_output(stats)
-            statistics_output = f"{data_source_message}\n\n{statistics_output}"
-        else:
-            statistics_output = data_source_message
-
-        # Add error bar information
-        if error_info:
-            statistics_output += f"\n\n📊 **Error Bar Info:**\n{error_info.strip()}"
-        elif show_error_bars and (x_errors is not None or y_errors is not None):
-            error_summary = []
-            if x_errors is not None:
-                error_summary.append(f"X errors: Mean = {np.mean(x_errors):.4f}")
-            if y_errors is not None:
-                error_summary.append(f"Y errors: Mean = {np.mean(y_errors):.4f}")
-            if error_summary:
-                statistics_output += f"\n\n📊 **Error Bar Info:**\n• " + "\n• ".join(error_summary)
-
-        # Calculate max degree and validate for polynomial
-        max_degree = max(0, len(x_data) - 1)
-        if degree > max_degree:
-            degree = max_degree
-        
-        updated_slider = gr.Slider(minimum=0, maximum=max_degree, step=1, value=degree, label="Polynomial Degree (n)")
-        
-        # --- Model Fitting based on selected type ---
-        try:
-            if fit_type == "polynomial":
-                # Traditional polynomial fitting
-                if len(x_data) > 1 and degree > 0:
-                    coeffs = np.polyfit(x_data, y_data, degree)
-                    fit_func = np.poly1d(coeffs)
-                    equation_str = format_polynomial(coeffs, degree)
-                    model_params = None
-                    
-                    # Calculate R-squared
-                    y_pred = fit_func(x_data)
-                    ss_res = np.sum((y_data - y_pred) ** 2)
-                    ss_tot = np.sum((y_data - np.mean(y_data)) ** 2)
-                    r_squared = 1 - (ss_res / ss_tot) if ss_tot != 0 else 0
-                    
-                    if r_squared >= 0.9:
-                        info_msg = f"✅ **Polynomial Fit** (degree {degree})\n🎯 **Excellent Fit**: R² = {r_squared:.4f}"
-                    elif r_squared >= 0.7:
-                        info_msg = f"✅ **Polynomial Fit** (degree {degree})\n👍 **Good Fit**: R² = {r_squared:.4f}"
-                    elif r_squared >= 0.5:
-                        info_msg = f"✅ **Polynomial Fit** (degree {degree})\n👌 **Moderate Fit**: R² = {r_squared:.4f}"
-                    else:
-                        info_msg = f"✅ **Polynomial Fit** (degree {degree})\n⚠️ **Poor Fit**: R² = {r_squared:.4f}"
-                else:
-                    info_msg = f"ℹ️ **Single Point**: Using constant function"
-                    # For single point or degree 0, use constant function
-                    fit_func = np.poly1d([y_data[0]])
-                    equation_str = f"f(x) = {y_data[0]:.3f}"
-                    model_params = None
-            else:
-                # Alternative model fitting
-                with warnings.catch_warnings():
-                    warnings.simplefilter('error', RuntimeWarning)
-                    try:
-                        fit_func, model_params, fit_params_str = fit_alternative_model(x_data, y_data, fit_type)
-                    except (RuntimeWarning, RuntimeError, ValueError) as e:
-                        return None, f"🔴 **Fitting Error ({fit_type})**: {str(e)}", "", "", statistics_output, "", updated_slider
-                
-                if fit_func is None:
-                    return None, f"🔴 **Fitting Error**: Could not fit {fit_type} model to data", "", "", statistics_output, "", updated_slider
-                
-                # Calculate R-squared for alternative models
-                try:
-                    if model_params is not None:
-                        y_pred = fit_func(x_data, *model_params)
-                    else:
-                        y_pred = fit_func(x_data)
-                    
-                    ss_res = np.sum((y_data - y_pred) ** 2)
-                    ss_tot = np.sum((y_data - np.mean(y_data)) ** 2)
-                    r_squared = 1 - (ss_res / ss_tot) if ss_tot != 0 else 0
-                    
-                    if r_squared >= 0.9:
-                        info_msg = f"✅ **{fit_type.title()} Fit**\n�� **Excellent Fit**: R² = {r_squared:.4f}"
-                    elif r_squared >= 0.7:
-                        info_msg = f"✅ **{fit_type.title()} Fit**\n👍 **Good Fit**: R² = {r_squared:.4f}"
-                    elif r_squared >= 0.5:
-                        info_msg = f"✅ **{fit_type.title()} Fit**\n👌 **Moderate Fit**: R² = {r_squared:.4f}"
-                    else:
-                        info_msg = f"✅ **{fit_type.title()} Fit**\n⚠️ **Poor Fit**: R² = {r_squared:.4f}"
-                except:
-                    info_msg = f"✅ **{fit_type.title()} Fit** completed"
-                    
-                # Make sure we have equation_str set for all models
-                if not equation_str and fit_type != "custom":
-                    equation_str = f"f(x) = {fit_type} model"
-
-            # Generate points for the fitted curve
-            if len(x_data) > 1:
-                x_range = x_data.max() - x_data.min()
-                if x_range == 0:
-                    x_fit = np.array([x_data[0] - 1, x_data[0], x_data[0] + 1])
-                else:
-                    x_fit = np.linspace(x_data.min(), x_data.max(), 200)
-                
-                if model_params is not None:
-                    y_fit = fit_func(x_fit, *model_params)
-                else:
-                    y_fit = fit_func(x_fit)
-                    
-                # Check for numerical issues in the fit
-                if np.any(np.isnan(y_fit)) or np.any(np.isinf(y_fit)):
-                    info_msg += "\n⚠️ **Warning**: Fitted curve contains invalid values"
-                    # Filter out invalid points
-                    valid_mask = np.isfinite(y_fit)
-                    x_fit = x_fit[valid_mask]
-                    y_fit = y_fit[valid_mask]
-                    
-                    if len(x_fit) == 0:
-                        return None, "🔴 **Fitting Error**: All fitted values are invalid (NaN/Inf).", "", "", statistics_output, "", updated_slider
-                        
-            else:
-                # Single point case
-                x_fit = np.array([x_data[0]])
-                y_fit = np.array([y_data[0]])
-                fit_func = lambda x: np.full_like(x, y_data[0])
-                equation_str = f"f(x) = {y_data[0]:.3f}"
-                model_params = None
-
-        except Exception as e:
-            return None, f"🔴 **Fitting Error**: {str(e)}", "", "", statistics_output, "", updated_slider
-
-        # --- Check for 3D Surface Plotting ---
-        # If Z data is available and suitable for 3D surface, create 3D plot
-        # Or if user explicitly requests 3D plot and Z data is present
-        if z_data is not None and (force_3d or _is_suitable_for_3d_surface(x_data, y_data, z_data)):
-            if not _is_suitable_for_3d_surface(x_data, y_data, z_data) and force_3d:
-                info_msg += "\n⚠️ **3D Plot Warning**: Data may not be ideal for 3D surface, but attempting due to explicit request."
-            try:
-                fig = _create_3d_surface_plot(
-                    x_data, y_data, z_data, x_errors, y_errors,
-                    data_color, custom_x_label, custom_y_label, custom_title
-                )
-                
-                # For 3D plots, we don't show polynomial fitting on the surface
-                # but we can show fit info separately
-                info_msg += "\n🎯 **3D Surface**: Created 3D surface plot from X, Y, Z data."
-                
-                # Apply layout customizations for 3D
-                layout_options = {}
-                
-                # Font customization for 3D
-                safe_font_family = font_family if font_family else "Arial"
-                safe_title_size = max(8, min(32, title_font_size)) if title_font_size else 16
-                safe_axes_size = max(8, min(24, axes_font_size)) if axes_font_size else 12
-                safe_legend_size = max(8, min(20, legend_font_size)) if legend_font_size else 10
-                
-                layout_options['font'] = dict(
-                    family=safe_font_family,
-                    size=safe_axes_size,
-                    color=font_color if font_color else "#000000"
-                )
-                
-                if "Show Title" in plot_options:
-                    layout_options['title_font'] = dict(
-                        family=safe_font_family,
-                        size=safe_title_size,
-                        color=font_color if font_color else "#000000"
-                    )
-                
-                layout_options['legend_font'] = dict(
-                    family=safe_font_family,
-                    size=safe_legend_size,
-                    color=font_color if font_color else "#000000"
-                )
-                
-                fig.update_layout(**layout_options)
-                
-                # For 3D plots, we still need to return all the expected outputs
-                return fig, info_msg, equation_str, fit_params_str, statistics_output, area_str, updated_slider
-                
-            except Exception as e:
-                # Fall back to 2D plotting if 3D fails
-                info_msg += f"\n⚠️ **3D Error**: {str(e)}. Falling back to 2D plot."
-        
-        # --- Create 2D Plotly Figure ---
-        fig = go.Figure()
-        
-        # Validate colors
-        try:
-            # Test if colors are valid by trying to add them to a trace
-            fig.add_trace(go.Scatter(x=[0], y=[0], marker=dict(color=data_color), visible=False))
-            fig.add_trace(go.Scatter(x=[0], y=[0], line=dict(color=fit_color), visible=False))
-            fig.data = []  # Clear test traces
-        except Exception:
-            data_color = "#1f77b4"  # Fallback to default blue
-            fit_color = "#ff7f0e"   # Fallback to default orange
-
-        # Plot original data with enhanced styling for Z-data
-        scatter_params = {
-            'x': x_data,
-            'y': y_data,
-            'mode': 'markers',
-            'name': 'Original Data',
-            'marker': dict(color=data_color, symbol=data_marker, size=8)
-        }
-        
-        # Enhanced visualization if Z-data is available
-        if z_data is not None:
-            # Use Z-data for color mapping
-            scatter_params['marker']['color'] = z_data
-            scatter_params['marker']['colorscale'] = 'Viridis'
-            scatter_params['marker']['showscale'] = True
-            scatter_params['marker']['colorbar'] = dict(title="Z Values")
-            scatter_params['name'] = f'Data (colored by Z)'
-        
-            
-
-        # Add error bars if available
-        if show_error_bars and (x_errors is not None or y_errors is not None):
-            if x_errors is not None:
-                scatter_params['error_x'] = dict(
-                    type='data',
-                    array=x_errors,
-                    color=data_color,
-                    thickness=1.5,
-                    width=3
-                )
-            if y_errors is not None:
-                scatter_params['error_y'] = dict(
-                    type='data',
-                    array=y_errors,
-                    color=data_color,
-                    thickness=1.5,
-                    width=3
-                )
-            
-            # Update name to indicate error bars
-            error_types = []
-            if x_errors is not None:
-                error_types.append("X")
-            if y_errors is not None:
-                error_types.append("Y")
-            base_name = scatter_params['name']
-            scatter_params['name'] = f'{base_name} (±{"/".join(error_types)} errors)'
-
-        fig.add_trace(go.Scatter(**scatter_params))
-
-        # Plot fitted curve
-        if len(x_fit) > 0 and len(y_fit) > 0:
-            fig.add_trace(go.Scatter(
-                x=x_fit,
-                y=y_fit,
-                mode='lines',
-                name=f'{fit_type.title()} Fit',
-                line=dict(color=fit_color, dash=fit_line_style, width=2)
-            ))
-
-        # Add extrapolation if requested
-        if show_extrapolation:
-            try:
-                step_size = extrapolation_step_size if extrapolation_step_size and extrapolation_step_size > 0 else None
-                x_extrap, y_extrap, extrap_error = calculate_extrapolation(fit_func, x_data, n_extrapolation_steps, step_size, model_params)
-                
-                if extrap_error:
-                    extrapolation_output = f"❌ **Extrapolation Error**: {extrap_error}"
-                else:
-                    extrapolation_output = format_extrapolation_output(x_extrap, y_extrap, n_extrapolation_steps)
-                    
-                    # Add extrapolation points to plot
-                    if x_extrap is not None and y_extrap is not None:
-                        fig.add_trace(go.Scatter(
-                            x=x_extrap, y=y_extrap,
-                            mode='markers+lines',
-                            name='Extrapolation',
-                            line=dict(color='purple', dash='dot', width=2),
-                            marker=dict(color='purple', symbol='diamond', size=8)
-                        ))
-                        
-                        # Add annotations for extrapolation points
-                        for i, (x, y) in enumerate(zip(x_extrap, y_extrap)):
-                            fig.add_annotation(
-                                x=x, y=y,
-                                text=f"Point {i+1}",
-                                showarrow=True,
-                                arrowhead=2,
-                                arrowsize=1,
-                                arrowcolor="purple",
-                                ax=20,
-                                ay=-30
-                            )
-            except Exception as e:
-                extrapolation_output = f"❌ **Extrapolation Error**: {str(e)}"
-        else:
-            extrapolation_output = "🔮 **Extrapolation**: Enable to predict future values based on the fitted model"
-
-        # Add special points and features
-        _add_special_points(fig, fit_func, x_data, y_data, special_points_show, fit_type, degree)
-        
-        # Add derivative calculation
-        if x_for_derivative is not None and fit_type == "polynomial":
-            derivative_text_output = _calculate_derivative(fig, fit_func, x_for_derivative, x_data, degree)
-        elif x_for_derivative is not None and fit_type != "polynomial":
-            derivative_text_output = f"ℹ️ **Derivative calculation**: Only available for polynomial fits. Current fit type: {fit_type}"
-
-        # Add area calculation
-        if show_area and area_start_x is not None and area_end_x is not None:
-            area_output = _calculate_and_show_area(fig, fit_func, area_start_x, area_end_x, x_data, y_data, model_params)
-        else:
-            area_output = "📐 **Area Calculation**: Enable 'Show Area' and set X boundaries to calculate area under curve"
-
-        # Configure layout
-        _configure_plot_layout(fig, plot_options, xaxis_scale, yaxis_scale, custom_x_label, custom_y_label, 
-                              custom_title, font_family, title_font_size, axes_font_size, legend_font_size, 
-                              font_color, x_data, y_data, info_msg)
-
-        # Combine equation and info messages
-        full_message = f"**{equation_str}**\n\n{info_msg}"
-        
-        return fig, full_message, derivative_text_output, statistics_output, area_output, extrapolation_output, updated_slider
-
-    except Exception as e:
-        return None, f"🔴 **Unexpected Error**: {str(e)}", "", "", "", "", default_slider
-
-def _add_special_points(fig, fit_func, x_data, y_data, special_points_show, fit_type, degree):
-    """Add special points to the plot."""
-    # Extrema (critical points) - only for polynomial fits
-    if "Show Extrema" in special_points_show and fit_type == "polynomial" and degree > 0:
-        try:
-            deriv_poly = fit_func.deriv()
-            extrema_x_complex = deriv_poly.roots
-            extrema_x = extrema_x_complex[np.isreal(extrema_x_complex)].real
-            if len(x_data) > 0:
-                extrema_x = extrema_x[(extrema_x >= x_data.min()) & (extrema_x <= x_data.max())]
-            if extrema_x.size > 0:
-                extrema_y = fit_func(extrema_x)
-                fig.add_trace(go.Scatter(
-                    x=extrema_x, y=extrema_y, mode='markers', name='Extrema',
-                    marker=dict(color='red', size=10, symbol='star')
-                ))
-        except:
-            pass
-    
-    # X-Intercepts - only for polynomial fits
-    if "Show X-Intercepts" in special_points_show and fit_type == "polynomial" and degree > 0:
-        try:
-            x_intercepts_complex = fit_func.roots
-            x_intercepts = x_intercepts_complex[np.isreal(x_intercepts_complex)].real
-            if len(x_data) > 0:
-                x_intercepts = x_intercepts[(x_intercepts >= x_data.min()) & (x_intercepts <= x_data.max())]
-            if x_intercepts.size > 0:
-                y_intercepts = np.zeros_like(x_intercepts)
-                fig.add_trace(go.Scatter(
-                    x=x_intercepts, y=y_intercepts, mode='markers', name='X-Intercepts',
-                    marker=dict(color='green', size=10, symbol='x')
-                ))
-        except:
-            pass
-    
-    # Y-Intercept
-    if "Show Y-Intercept" in special_points_show:
-        try:
-            y_intercept = fit_func(0)
-            if not (np.isnan(y_intercept) or np.isinf(y_intercept)):
-                fig.add_trace(go.Scatter(
-                    x=[0], y=[y_intercept], mode='markers', name='Y-Intercept',
-                    marker=dict(color='orange', size=10, symbol='circle-open')
-                ))
-        except:
-            pass
-
-
 def _calculate_derivative(fig, fit_func, x_for_derivative, x_data, degree):
     """Calculate and display derivative at a point."""
     try:
@@ -683,54 +177,78 @@ def _calculate_derivative(fig, fit_func, x_for_derivative, x_data, degree):
         return f"❌ Error calculating derivative: {str(e)}"
 
 
-def _calculate_and_show_area(fig, fit_func, area_start_x, area_end_x, x_data, y_data, model_params):
-    """Calculate and visualize area under curve."""
-    try:
-        start_x = float(area_start_x)
-        end_x = float(area_end_x)
-        
-        if start_x < end_x:
-            # For area calculation, create a lambda function for non-polynomial models
-            if model_params is not None:
-                area_func = lambda x: fit_func(x, *model_params)
-            else:
-                area_func = fit_func
+def _add_special_points(fig, fit_func, x_data, y_data, special_points_show, fit_type, degree, dataset_name=""):
+    """Add special points to the plot with dataset-specific naming."""
+    if not isinstance(special_points_show, (list, set)):
+        return  # Invalid input format
+    
+    name_suffix = f" ({dataset_name})" if dataset_name else ""
+    
+    # Helper function to add trace with dataset context
+    def _add_trace(x, y, name, color, symbol):
+        fig.add_trace(go.Scatter(
+            x=x, y=y, mode='markers', 
+            name=f"{name}{name_suffix}",
+            marker=dict(color=color, size=10, symbol=symbol),
+            legendgroup=dataset_name  # Group related items in legend
+        ))
+    
+    # Extrema (critical points)
+    if "Show Extrema" in special_points_show and fit_type == "polynomial" and degree > 0:
+        try:
+            deriv_poly = fit_func.deriv()
+            extrema_x = deriv_poly.roots[np.isreal(deriv_poly.roots)].real
+            extrema_x = extrema_x[(extrema_x >= x_data.min()) & (extrema_x <= x_data.max())]
+            if extrema_x.size > 0:
+                _add_trace(extrema_x, fit_func(extrema_x), 
+                          "Extrema", 'red', 'star')
+        except:
+            pass
+
+     # X-Intercepts (пересечения с осью X)
+    if "Show X-Intercepts" in special_points_show and fit_type == "polynomial" and degree > 0:
+        try:
+            # Находим все корни полинома
+            x_intercepts = fit_func.roots[np.isreal(fit_func.roots)].real
             
-            # Calculate area
-            area_value, area_error = calculate_area_under_curve(area_func, start_x, end_x)
+            # Фильтруем только действительные корни
+            valid_intercepts = []
+            for x in x_intercepts:
+                try:
+                    y = fit_func(x)
+                    if abs(y) < 1e-10:  # Практически на оси X
+                        valid_intercepts.append(x)
+                except:
+                    continue
             
-            if area_error:
-                return f"❌ **Area Error**: {area_error}"
-            else:
-                area_output = format_area_output(area_value, start_x, end_x, area_func)
+            if valid_intercepts:
+                # Добавляем точки даже если они вне текущего диапазона данных
+                _add_trace(valid_intercepts, np.zeros_like(valid_intercepts),
+                          "X-Intercepts", 'green', 'x')
                 
-                # Create area visualization
-                if len(x_data) > 0:
-                    # Create fine-grained x points for smooth area fill
-                    x_area = np.linspace(start_x, end_x, 200)
-                    if model_params is not None:
-                        y_area = fit_func(x_area, *model_params)
-                    else:
-                        y_area = fit_func(x_area)
-                    
-                    # Add area fill
-                    fig.add_trace(go.Scatter(
-                        x=x_area, y=y_area,
-                        fill='tozeroy',
-                        fillcolor='rgba(255, 0, 0, 0.2)',
-                        line=dict(color='rgba(255, 0, 0, 0.5)', width=1),
-                        name=f'Area: {area_value:.4f}',
-                        hovertemplate='X: %{x:.4f}<br>Y: %{y:.4f}<br>Area Region<extra></extra>'
-                    ))
+                # Автоматически расширяем ось X если нужно
+                current_x_range = fig.layout.xaxis.range or [min(x_data), max(x_data)]
+                new_min = min(current_x_range[0], min(valid_intercepts))
+                new_max = max(current_x_range[1], max(valid_intercepts))
+                fig.update_xaxes(range=[new_min - 0.1*(new_max-new_min), 
+                                new_max + 0.1*(new_max-new_min)])
                 
-                return area_output
-        else:
-            return "❌ **Area Error**: Start X must be less than End X"
-            
-    except ValueError:
-        return "❌ **Area Error**: Invalid X values for area calculation"
-    except Exception as e:
-        return f"❌ **Area Error**: {str(e)}"
+        except Exception as e:
+            print(f"X-Intercepts error for {dataset_name}: {str(e)}")
+
+
+    # Y-Intercept
+    if "Show Y-Intercept" in special_points_show:
+        try:
+            y_intercept = fit_func(0)
+            if np.isfinite(y_intercept):
+                _add_trace([0], [y_intercept], 
+                          "Y-Intercept", 'orange', 'circle-open')
+        except:
+            pass
+
+
+
 
 
 def _configure_plot_layout(fig, plot_options, xaxis_scale, yaxis_scale, custom_x_label, custom_y_label, 
@@ -760,20 +278,31 @@ def _configure_plot_layout(fig, plot_options, xaxis_scale, yaxis_scale, custom_x
             layout_options['title'] = title
         else:
             title = "Data and Polynomial Fit"  # Default title for filename
-
         # Axis scaling with validation
-        if xaxis_scale == "log" and np.any(x_data <= 0):
-            xaxis_scale = "linear"
-            info_msg += "\n⚠️ Switched to linear X-axis (negative/zero values detected)"
-        
-        if yaxis_scale == "log" and np.any(y_data <= 0):
-            yaxis_scale = "linear"
-            info_msg += "\n⚠️ Switched to linear Y-axis (negative/zero values detected)"
+        x_data = np.asarray(x_data, dtype=float)
+        y_data = np.asarray(y_data, dtype=float)
 
-        layout_options['xaxis_type'] = xaxis_scale
-        layout_options['yaxis_type'] = yaxis_scale
-        layout_options['legend_title_text'] = 'Legend'
+       # Axis scaling with validation
+        if xaxis_scale == "log":
+            if np.any(x_data <= 0):
+                xaxis_scale = "linear"
+                info_msg += "\n⚠️ Логарифмическая шкала X отключена (найдены X ≤ 0)"
+            else:
+                # Явно применяем логарифмическую шкалу ТОЛЬКО если данные корректны
+                fig.update_layout(xaxis_type="log")  # Ключевая строка!
         
+        if yaxis_scale == "log":
+            if np.any(y_data <= 0):
+                yaxis_scale = "linear"
+                info_msg += "\n⚠️ Логарифмическая шкала Y отключена (найдены Y ≤ 0)"
+            else:
+                fig.update_layout(yaxis_type="log")
+       
+        layout_options['legend_title_text'] = 'Legend'
+        fig.update_layout(
+             xaxis=dict(type=xaxis_scale, title="X Axis"),
+             yaxis=dict(type=yaxis_scale, title="Y Axis"),
+        )
         # Font customization with validation
         safe_font_family = font_family if font_family else "Arial"
         safe_title_size = max(8, min(32, title_font_size)) if title_font_size else 16
@@ -798,6 +327,10 @@ def _configure_plot_layout(fig, plot_options, xaxis_scale, yaxis_scale, custom_x
             size=safe_legend_size,
             color=font_color if font_color else "#000000"
         )
+        layout_options.update({
+        'xaxis_tickformat': '.1f',  # 1 знак после запятой
+        'yaxis_tickformat': '.1f'
+         })
         
         fig.update_layout(**layout_options, height=500, margin=dict(l=50, r=50, b=50, t=50, pad=4))
         
@@ -809,7 +342,8 @@ def update_combined_plot(
     curve_configs, plot_options, xaxis_scale, yaxis_scale, special_points_show, x_for_derivative,
     custom_x_label, custom_y_label, custom_title,
     font_family, title_font_size, axes_font_size, legend_font_size, font_color,
-    area_start_x, area_end_x, show_area, n_extrapolation_steps, extrapolation_step_size, show_extrapolation
+    area_start_x, area_end_x, show_area, n_extrapolation_steps, extrapolation_step_size, show_extrapolation,
+    connect_points
 ):
     """Update plot with multiple datasets."""
     try:
@@ -942,6 +476,16 @@ def update_combined_plot(
                     'marker': dict(color=config.get('data_color', '#1f77b4'), symbol=config.get('data_marker', 'circle'), size=8)
                 }
                 
+                if connect_points:  # Используем переданный параметр
+                    fig.add_trace(go.Scatter(
+                         x=x_data,
+                         y=y_data,
+                         mode='lines',
+                         name=f"{config.get('name', f'Curve {i+1}')} - Lines",
+                         line=dict(color=config.get('data_color', '#1f77b4'), width=1, dash='solid'),
+                         opacity=0.7,
+                         hoverinfo='skip'
+                         ))
                 # Enhanced visualization if Z-data is available (for 2D plots)
                 if z_data is not None:
                     scatter_params['marker']['color'] = z_data
@@ -1024,6 +568,87 @@ def update_combined_plot(
         if not curve_data: # If all curves were skipped due to errors or no data
             return None, "❌ No valid data found in any visible dataset.Check the number of X and Y values.", "", statistics_output, "", ""
 
+
+
+        curve_data = []
+        for config in visible_curves:
+            # ... (существующий код обработки данных)
+            
+            curve_data.append({
+                'name': config.get('name', f'Curve {i+1}'),
+                'x_data': x_data,  # Эти поля заполняются ранее в коде
+                'y_data': y_data,
+                'z_data': z_data,
+                'config': config
+            })
+    
+        # Проверка на пустые данные (как у вас было)
+        if not curve_data:
+            return None, "❌ No valid data found in any visible dataset.", "", statistics_output, "", ""
+    
+        # Добавляем специальные точки ДО статистики и других расчетов
+        for curve in curve_data:
+            if curve['config'].get('show_fit', True) and curve['config'].get('fit_type') == 'polynomial':
+                try:
+                    degree = min(curve['config'].get('degree', 1), len(curve['x_data']) - 1)
+                    coeffs = np.polyfit(curve['x_data'], curve['y_data'], degree)
+                    fit_func = np.poly1d(coeffs)
+                    
+                    _add_special_points(
+                        fig=fig,
+                        fit_func=fit_func,
+                        x_data=curve['x_data'],
+                        y_data=curve['y_data'],
+                        special_points_show=special_points_show,
+                        fit_type=curve['config']['fit_type'],
+                        degree=degree,
+                        dataset_name=curve['name']
+                    )
+                except Exception as e:
+                    print(f"Error adding special points for {curve['name']}: {str(e)}")
+
+        # Add extrapolation for first visible curve
+        if show_extrapolation and curve_data:
+            first_curve = curve_data[0]
+            try:
+                degree = min(first_curve['config']['degree'], len(first_curve['x_data']) - 1)
+                coeffs = np.polyfit(first_curve['x_data'], first_curve['y_data'], degree)
+                fit_func = np.poly1d(coeffs)
+                
+                step_size = extrapolation_step_size if extrapolation_step_size and extrapolation_step_size > 0 else None
+                x_extrap, y_extrap, extrap_error = calculate_extrapolation(
+                    fit_func, first_curve['x_data'], n_extrapolation_steps, step_size
+                )
+                
+                if not extrap_error and x_extrap is not None and len(x_extrap) > 0:
+                    # Add connecting line from last data point to first extrapolation point
+                    fig.add_trace(go.Scatter(
+                        x=[first_curve['x_data'][-1], x_extrap[0]],
+                        y=[first_curve['y_data'][-1], y_extrap[0]],
+                        mode='lines',
+                        line=dict(color='purple', width=1, dash='dot'),
+                        showlegend=False,
+                        hoverinfo='skip'
+                    ))
+                    
+                    # Add extrapolation points
+                    fig.add_trace(go.Scatter(
+                        x=x_extrap, y=y_extrap, mode='markers+lines',
+                        name=f'Extrapolation ({first_curve["name"]})',
+                        marker=dict(color='purple', size=6, symbol='diamond'),
+                        line=dict(color='purple', dash='dot', width=2),
+                        opacity=0.8
+                    ))
+                    
+                    extrapolation_output = format_extrapolation_output(x_extrap, y_extrap, n_extrapolation_steps)
+                    extrapolation_output = f"🔮 **Extrapolation** (based on {first_curve['name']})\n\n" + extrapolation_output
+            except Exception as e:
+                extrapolation_output = f"❌ Extrapolation error: {str(e)}"
+        
+        if not extrapolation_output:
+            extrapolation_output = "🔮 **Extrapolation**: Enable to predict future values (based on first dataset)"
+        
+
          # Calculate combined statistics
         if all_x_data and all_y_data:
             all_x_array = np.array(all_x_data)
@@ -1059,36 +684,7 @@ def update_combined_plot(
                             z_stats = f"  Z-data: Mean = {np.mean(curve['z_data']):.4f}, Range = [{np.min(curve['z_data']):.4f}, {np.max(curve['z_data']):.4f}]\n"
                             statistics_output += z_stats
 
-        # Add extrapolation for first visible curve
-        if show_extrapolation and curve_data:
-            first_curve = curve_data[0]
-            try:
-                degree = min(first_curve['config']['degree'], len(first_curve['x_data']) - 1)
-                coeffs = np.polyfit(first_curve['x_data'], first_curve['y_data'], degree)
-                fit_func = np.poly1d(coeffs)
-                
-                step_size = extrapolation_step_size if extrapolation_step_size and extrapolation_step_size > 0 else None
-                x_extrap, y_extrap, extrap_error = calculate_extrapolation(
-                    fit_func, first_curve['x_data'], n_extrapolation_steps, step_size
-                )
-                
-                if not extrap_error and x_extrap is not None:
-                    extrapolation_output = format_extrapolation_output(x_extrap, y_extrap, n_extrapolation_steps)
-                    extrapolation_output = f"🔮 **Extrapolation** (based on {first_curve['name']})\n\n" + extrapolation_output
-                    
-                    # Add extrapolation to plot
-                    fig.add_trace(go.Scatter(
-                        x=x_extrap, y=y_extrap, mode='markers+lines',
-                        name=f'Extrapolation ({first_curve["name"]})',
-                        marker=dict(color='purple', size=6, symbol='diamond'),
-                        line=dict(color='purple', dash='dot', width=2),
-                        opacity=0.8
-                    ))
-            except:
-                pass
-        
-        if not extrapolation_output:
-            extrapolation_output = "🔮 **Extrapolation**: Enable to predict future values (based on first dataset)"
+    
         
         # Add area calculation for first curve
         if show_area and area_start_x is not None and area_end_x is not None and curve_data:
@@ -1122,6 +718,7 @@ def update_combined_plot(
         if not area_output:
             area_output = "📐 **Area Calculation**: Enable to calculate area under curve (based on first dataset)"
 
+        
         # --- Finalize Layout and Return ---
         # Common layout adjustments for combined plots
         _configure_plot_layout(fig, plot_options, xaxis_scale, yaxis_scale, custom_x_label, custom_y_label, 

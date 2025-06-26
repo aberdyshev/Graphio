@@ -10,7 +10,7 @@ from .dataset_management import (
     create_new_curve, duplicate_curve, delete_curve, switch_curve, save_current_curve_config,
     save_app_configuration, load_app_configuration # Added new functions
 )
-from .plotting import update_combined_plot, update_plot_and_fit, update_slider_only
+from .plotting import update_combined_plot, update_slider_only
 
 
 def create_gradio_interface():
