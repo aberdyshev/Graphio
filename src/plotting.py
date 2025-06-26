@@ -497,38 +497,7 @@ def update_plot_and_fit(
             scatter_params['marker']['colorbar'] = dict(title="Z Values")
             scatter_params['name'] = f'Data (colored by Z)'
         
-            def validate_data_length(x_data, y_data):
             
-
-        #  Проверяет соответствие количества значений X и Y.
-        #    Возвращает сообщение об ошибке, если размеры не совпадают.
-            
-                error_msgt = None
-            
-                # Определяем длины массивов
-                x_len = len(x_data)
-                y_len = len(y_data)
-            
-                # Проверяем соответствие размеров
-                if x_len != y_len:
-                    error_msgt = "❌ Ошибка: количество значений не совпадает!\n"
-                
-                    # Определяем, каких данных не хватает
-                    if x_len > y_len:
-                        missing_count = x_len - y_len
-                        error_msgt += f" - Не хватает {missing_count} значений Y (имеется {y_len}, требуется {x_len})"
-                    else:
-                        missing_count = y_len - x_len
-                        error_msgt += f" - Не хватает {missing_count} значений X (имеется {x_len}, требуется {y_len})"
-                    
-                return error_msgt
-
-       
-        error_message = validate_data_length(x_data, y_data)
-        if error_message:
-            return(error_message)
-        else:
-            return("Данные корректны, можно строить график")
 
         # Add error bars if available
         if show_error_bars and (x_errors is not None or y_errors is not None):
@@ -1053,8 +1022,7 @@ def update_combined_plot(
 
 
         if not curve_data: # If all curves were skipped due to errors or no data
-            return error_msgt, "❌ No valid data found in any visible dataset.
-Check the number of X and Y values.", "", statistics_output, "", ""
+            return None, "❌ No valid data found in any visible dataset.Check the number of X and Y values.", "", statistics_output, "", ""
 
          # Calculate combined statistics
         if all_x_data and all_y_data:
