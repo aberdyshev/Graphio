@@ -565,6 +565,35 @@ def update_plot_and_fit(
         if z_data is not None:
             z_stats = f"\n\n📊 **Z Data Statistics:**\n• Mean: {np.mean(z_data):.4f}\n• Std Dev: {np.std(z_data, ddof=1):.4f}\n• Range: [{np.min(z_data):.4f}, {np.max(z_data):.4f}]"
             statistics_output += z_stats
+        def validate_data_length(x_data, y_data):
+
+            error_msg = ""
+    
+            # Определяем длины массивов
+            x_len = len(x_data)
+            y_len = len(y_data)
+    
+            # Проверяем соответствие размеров
+            if x_len != y_len:
+                error_msg = "❌ Ошибка: количество значений не совпадает!\n"
+        
+                # Определяем, каких данных не хватает
+                if x_len > y_len:
+                    missing_count = x_len - y_len
+                    error_msg += f" - Не хватает {missing_count} значений Y (имеется {y_len}, требуется {x_len})"
+                else:
+                    missing_count = y_len - x_len
+                    error_msg += f" - Не хватает {missing_count} значений X (имеется {x_len}, требуется {y_len})"
+            
+                    return error_msg
+
+
+
+        error_message = validate_data_length(x_data, y_data)
+        if error_message:
+            print(error_message)
+        else:
+            print("Данные корректны, можно строить график")
 
         # Add error bar information
         if error_info:
