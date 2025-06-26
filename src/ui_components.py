@@ -54,21 +54,11 @@ def create_gradio_interface():
         with gr.Row():
             with gr.Column(scale=1):
                 # Configuration Management Section
-                gr.Markdown("### 💾 Configuration Management")
-                with gr.Row():
-                    save_config_button = gr.Button("Save Configuration", size="sm")
-                    load_config_file_input = gr.File(
-                        label="Load Configuration File", 
-                        file_types=[".json"], 
-                        type="filepath",
-                        scale=2 # Give more space to file input
-                    )
-                config_management_status = gr.Textbox(label="Config Status", interactive=False, lines=2)
-                download_config_link = gr.File(label="Download Saved Configuration", interactive=False)
+                
 
                 gr.Markdown("### 📊 Dataset Management")
                 with gr.Row():
-                    curve_selector = gr.Dropdown(
+                    curve_selector = gr.Radio(
                         choices=['Dataset 1'],
                         value='Dataset 1',
                         label="Select Dataset",
@@ -170,10 +160,22 @@ def create_gradio_interface():
                         value='solid', label="Fit Line Style"
                     )
                 
+                gr.Markdown("### 💾 Configuration Management")
+                with gr.Row():
+                    save_config_button = gr.Button("Save Configuration", size="sm")
+                    load_config_file_input = gr.File(
+                        label="Load Configuration File", 
+                        file_types=[".json"], 
+                        type="filepath",
+                        scale=2 # Give more space to file input
+                    )
+                config_management_status = gr.Textbox(label="Config Status", interactive=False, lines=2, visible=False)
+                download_config_link = gr.File(label="Download Saved Configuration", interactive=False, visible=False)
+
                 # Error bars
                 show_error_bars_checkbox = gr.Checkbox(label="Show Error Bars", value=False)
-                x_errors_input = gr.Textbox(label="X Uncertainties", placeholder="Optional", lines=1)
-                y_errors_input = gr.Textbox(label="Y Uncertainties", placeholder="Optional", lines=1)
+                x_errors_input = gr.Textbox(label="X Uncertainties", placeholder="Enter the error for each data point", lines=1)
+                y_errors_input = gr.Textbox(label="Y Uncertainties", placeholder="enter the error for each data point", lines=1)
 
             with gr.Column(scale=2):
                 gr.Markdown("### 📈 Multi-Dataset Visualization")
@@ -184,7 +186,12 @@ def create_gradio_interface():
                     interactive=False, 
                     lines=2
                 )
+            
+                # Main update function
+                update_button = gr.Button("🚀 Update Multi-Dataset Plot", variant="primary", size="lg")
                 
+
+
                 with gr.Tabs():
                     with gr.TabItem("📊 Statistics"):
                         statistics_output = gr.Textbox(
@@ -265,8 +272,8 @@ def create_gradio_interface():
         def handle_save_config(all_configs):
             filepath, error = save_app_configuration(all_configs)
             if error:
-                return None, f"🔴 Error: {error}"
-            return filepath, f"✅ Configuration saved to: {filepath}"
+                return gr.update(visible=False), gr.update(value=f"🔴 Error: {error}", visible=True)
+            return gr.update(value=filepath, visible=True), gr.update(value=f"✅ Configuration saved to: {filepath}", visible=True)
 
         save_config_button.click(
             fn=handle_save_config,
@@ -274,25 +281,24 @@ def create_gradio_interface():
             outputs=[download_config_link, config_management_status]
         )
 
+
         def handle_load_config(file_obj, current_curve_configs, current_curve_names, current_idx):
             if file_obj is None:
-                return current_curve_configs, current_curve_names, current_idx, "", "No file selected for loading.", gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                return current_curve_configs, current_curve_names, current_idx, "", gr.update(value="No file selected for loading.", visible=True), gr.update(visible=False), *[gr.update() for _ in range(17)]
             
-            filepath = file_obj.name # .name contains the path for gr.File
+            filepath = file_obj.name
             loaded_configs, error = load_app_configuration(filepath)
             
             if error:
-                return current_curve_configs, current_curve_names, current_idx, "", f"🔴 Error loading: {error}", gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                return current_curve_configs, current_curve_names, current_idx, "", gr.update(value=f"🔴 Error loading: {error}", visible=True), gr.update(visible=False), *[gr.update() for _ in range(17)]
             
-            if not loaded_configs: # Empty list or None
-                return current_curve_configs, current_curve_names, current_idx, "", "ℹ️ Loaded configuration is empty or invalid. No changes applied.", gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+            if not loaded_configs:
+                return current_curve_configs, current_curve_names, current_idx, "", gr.update(value="ℹ️ Loaded configuration is empty or invalid. No changes applied.", visible=True), gr.update(visible=False), *[gr.update() for _ in range(17)]
 
             new_curve_names = [config.get('name', f'Dataset {i+1}') for i, config in enumerate(loaded_configs)]
-            new_current_idx = 0 if new_curve_names else 0 # Default to first curve or 0 if empty
+            new_current_idx = 0 if new_curve_names else 0
             new_curve_selector_value = new_curve_names[new_current_idx] if new_curve_names else None
-            
-            # Prepare outputs for switch_curve logic (or similar updates)
-            # This needs to match the outputs of switch_curve
+
             if loaded_configs:
                 first_config = loaded_configs[new_current_idx]
                 ui_updates = (
@@ -315,21 +321,16 @@ def create_gradio_interface():
                     gr.Checkbox(value=first_config.get('force_3d', False)),
                     f"✅ Loaded {len(loaded_configs)} dataset(s). Active: {new_curve_selector_value}"
                 )
-                # Also need to update file_dataframe_state and column dropdowns if file data was loaded
-                # This part is tricky as switch_curve doesn't directly return file_dataframe_state or column dropdowns
-                # For simplicity, we might need a dedicated function or make switch_curve more comprehensive
-                # For now, file data will be in loaded_configs, but UI for file selection won't auto-update from this load.
-                # User would need to re-select columns if they want to modify file-based data after load.
-            else: # Should not happen if loaded_configs is not empty check above passed
+            else:
                 ui_updates = tuple([gr.update() for _ in range(17)]) + ("No datasets loaded",)
 
-            return loaded_configs, new_curve_names, new_current_idx, gr.Dropdown(choices=new_curve_names, value=new_curve_selector_value), f"✅ Configuration loaded from: {filepath}", *ui_updates[1:] # Unpack starting from x_input
+            return loaded_configs, new_curve_names, new_current_idx, gr.Dropdown(choices=new_curve_names, value=new_curve_selector_value), gr.update(value=f"✅ Configuration loaded from: {filepath}", visible=True), gr.update(visible=False), *ui_updates[1:] # Unpack starting from x_input
 
         load_config_file_input.upload(
             fn=handle_load_config,
             inputs=[load_config_file_input, curve_configs_state, curve_names_state, current_curve_idx_state],
             outputs=[
-                curve_configs_state, curve_names_state, current_curve_idx_state, curve_selector, config_management_status,
+                curve_configs_state, curve_names_state, current_curve_idx_state, curve_selector, config_management_status, download_config_link,
                 # Outputs to update the UI for the first loaded curve (matches switch_curve outputs)
                 x_input, y_input, z_input, degree_slider,
                 data_color_picker, fit_color_picker, data_marker_dropdown, fit_line_dropdown,
@@ -358,7 +359,7 @@ def create_gradio_interface():
             outputs=[curve_configs_state, curve_names_state, current_curve_idx_state, curve_selector, curve_status]
         )
 
-        curve_selector.change(
+        curve_selector.select(
             fn=switch_curve,
             inputs=[curve_configs_state, curve_names_state, curve_selector],
             outputs=[
@@ -378,8 +379,7 @@ def create_gradio_interface():
             outputs=[x_column_dropdown, y_column_dropdown, z_column_dropdown, file_dataframe_state, x_input, y_input, file_status_output]
         )
 
-        # Main update function
-        update_button = gr.Button("🚀 Update Multi-Dataset Plot", variant="primary", size="lg")
+        
         
         # Consolidate all inputs for the combined plot
         # These are inputs that affect the overall plot, not individual curve configs
