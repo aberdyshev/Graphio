@@ -531,9 +531,9 @@ def update_plot_and_fit(
        
         error_message = validate_data_length(x_data, y_data)
         if error_message:
-            print(error_message)
+            return(error_message)
         else:
-            print("Данные корректны, можно строить график")
+            return("Данные корректны, можно строить график")
 
         # Add error bars if available
         if show_error_bars and (x_errors is not None or y_errors is not None):
