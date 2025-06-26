@@ -130,8 +130,11 @@ def create_gradio_interface():
                 with gr.Row():
                     show_data_checkbox = gr.Checkbox(label="Show Data Points", value=True)
                     show_fit_checkbox = gr.Checkbox(label="Show Polynomial Fit", value=True)
+                    connect_points_checkbox = gr.Checkbox(label="Connect Points with Lines", value=False)
+                    
+                visible_checkbox = gr.Checkbox(label="Visible on Plot", value=True, visible=False)
                 
-                visible_checkbox = gr.Checkbox(label="Visible on Plot", value=True)
+                    
                 
                 degree_slider = gr.Slider(
                     minimum=0, maximum=10, step=1, value=3,
@@ -404,7 +407,8 @@ def create_gradio_interface():
             show_area_checkbox, 
             n_extrapolation_steps_input, # Extrapolation for combined or first curve?
             extrapolation_step_size_input, 
-            show_extrapolation_checkbox
+            show_extrapolation_checkbox,
+            connect_points_checkbox
         ]
         
         update_button.click(
