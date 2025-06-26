@@ -1058,7 +1058,7 @@ def update_combined_plot(
 
 
         if not curve_data: # If all curves were skipped due to errors or no data
-            return None, "❌ No valid data found in any visible dataset.", "", statistics_output, "", ""
+            return error_msgt, "❌ No valid data found in any visible dataset.", "", statistics_output, "", ""
 
          # Calculate combined statistics
         if all_x_data and all_y_data:
