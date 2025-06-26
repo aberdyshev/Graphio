@@ -32,7 +32,6 @@ def find_free_port():
         return s.getsockname()[1]  # Возвращает номер порта
 
 def main():
-    print("OK: 0")
     """Main function to launch the application."""
     print("🚀 Starting Multi-Dataset Polynomial Fitting & Analysis Tool...")
     print("📁 Loading modular components...")

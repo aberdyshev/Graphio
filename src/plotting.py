@@ -496,9 +496,10 @@ def update_plot_and_fit(
             scatter_params['marker']['showscale'] = True
             scatter_params['marker']['colorbar'] = dict(title="Z Values")
             scatter_params['name'] = f'Data (colored by Z)'
-        '''
+        
             def validate_data_length(x_data, y_data):
-           
+            
+
         #  Проверяет соответствие количества значений X и Y.
         #    Возвращает сообщение об ошибке, если размеры не совпадают.
             
@@ -533,7 +534,7 @@ def update_plot_and_fit(
             print(error_message)
         else:
             print("Данные корректны, можно строить график")
-         '''
+
         # Add error bars if available
         if show_error_bars and (x_errors is not None or y_errors is not None):
             if x_errors is not None:
