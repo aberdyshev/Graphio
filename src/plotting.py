@@ -157,7 +157,7 @@ def update_plot_and_fit(
     fit_type, n_extrapolation_steps, extrapolation_step_size, show_extrapolation,
     x_errors_text, y_errors_text, show_error_bars,
     file_df, x_col_name, y_col_name, z_col_name, # Existing file/column params
-    force_3d=False  # New parameter for explicit 3D plot request
+    force_3d=False, connect_points=False  # New parameter for explicit 3D plot request
 ):
     """Enhanced function with file upload, column selection, Z-component, and explicit 3D plot support."""
     import gradio as gr
@@ -488,6 +488,17 @@ def update_plot_and_fit(
             'marker': dict(color=data_color, symbol=data_marker, size=8)
         }
         
+        if connect_points:
+        # Lomanaya 
+          fig.add_trace(go.Scatter(
+            x=x_data,
+            y=y_data,
+            mode='lines',
+            name='Connected Points',
+            line=dict(color=data_color, width=1, dash='solid'),
+            opacity=0.7,
+            hoverinfo='skip'
+        ))
         # Enhanced visualization if Z-data is available
         if z_data is not None:
             # Use Z-data for color mapping
@@ -523,7 +534,7 @@ def update_plot_and_fit(
                     
                 return error_msgt
 
-       
+
         # Add error bars if available
         if show_error_bars and (x_errors is not None or y_errors is not None):
             if x_errors is not None:
@@ -834,7 +845,8 @@ def update_combined_plot(
     curve_configs, plot_options, xaxis_scale, yaxis_scale, special_points_show, x_for_derivative,
     custom_x_label, custom_y_label, custom_title,
     font_family, title_font_size, axes_font_size, legend_font_size, font_color,
-    area_start_x, area_end_x, show_area, n_extrapolation_steps, extrapolation_step_size, show_extrapolation
+    area_start_x, area_end_x, show_area, n_extrapolation_steps, extrapolation_step_size, show_extrapolation,
+    connect_points
 ):
     """Update plot with multiple datasets."""
     try:
@@ -967,6 +979,16 @@ def update_combined_plot(
                     'marker': dict(color=config.get('data_color', '#1f77b4'), symbol=config.get('data_marker', 'circle'), size=8)
                 }
                 
+                if connect_points:  # Используем переданный параметр
+                    fig.add_trace(go.Scatter(
+                         x=x_data,
+                         y=y_data,
+                         mode='lines',
+                         name=f"{config.get('name', f'Curve {i+1}')} - Lines",
+                         line=dict(color=config.get('data_color', '#1f77b4'), width=1, dash='solid'),
+                         opacity=0.7,
+                         hoverinfo='skip'
+                         ))
                 # Enhanced visualization if Z-data is available (for 2D plots)
                 if z_data is not None:
                     scatter_params['marker']['color'] = z_data
