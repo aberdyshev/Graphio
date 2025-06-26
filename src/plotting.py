@@ -529,11 +529,11 @@ def update_plot_and_fit(
                 return error_msgt
 
        
-        error_message = validate_data_length(x_data, y_data)
-        if error_message:
-            return(error_message)
-        else:
-            return("Данные корректны, можно строить график")
+            error_message = validate_data_length(x_data, y_data)
+            if error_message:
+                return(error_message)
+            else:
+                return("Данные корректны, можно строить график")
 
         # Add error bars if available
         if show_error_bars and (x_errors is not None or y_errors is not None):
@@ -1058,8 +1058,7 @@ def update_combined_plot(
 
 
         if not curve_data: # If all curves were skipped due to errors or no data
-            return error_msgt, "❌ No valid data found in any visible dataset.
-Check the number of X and Y values.", "", statistics_output, "", ""
+            return None, "❌ No valid data found in any visible dataset. Check the number of X and Y values.", "", statistics_output, "", ""
 
          # Calculate combined statistics
         if all_x_data and all_y_data:
