@@ -50,8 +50,8 @@ def exponential_func(x: np.ndarray, a: float, b: float, c: float) -> np.ndarray:
 
 
 def logarithmic_func(x: np.ndarray, a: float, b: float, c: float) -> np.ndarray:
-    """Logarithmic function: f(x) = a * ln(b * x) + c"""
-    return a * np.log(b * x) + c
+    """Logarithmic function with sign preservation: f(x) = sign(x) * a * ln(b * |x|) + c"""
+    return np.sign(x) * a * np.log(b * np.abs(x)) + c
 
 
 def power_func(x: np.ndarray, a: float, b: float) -> np.ndarray:
@@ -69,14 +69,18 @@ def fit_alternative_model(x_data: np.ndarray, y_data: np.ndarray, model_type: st
             return exponential_func, popt, pcov, f"f(x) = {popt[0]:.3f} * exp({popt[1]:.3f} * x) + {popt[2]:.3f}"
             
         elif model_type == "logarithmic":
-            
-            # Check for positive x values
-            if np.all(x > 0 for x in x_data):      
-                popt, pcov = curve_fit(logarithmic_func, x_data, y_data, 
-                                     p0=[1, 1, 0], maxfev=5000)
-                return logarithmic_func, popt, pcov, f"f(x) = {popt[0]:.3f} * ln({popt[1]:.3f} * x) + {popt[2]:.3f}"
+        # Проверка на ненулевые значения
+            if np.all(x != 0 for x in x_data):
+                try:
+                    # Начальные приближения с учетом знака
+                    p0 = [1.0, 1.0, 0.0]
+                    popt, pcov = curve_fit(logarithmic_func, x_data, y_data, 
+                                         p0=p0, maxfev=5000)
+                    return logarithmic_func, popt, pcov, f"f(x) = sign(x)*{popt[0]:.3f} * ln({popt[1]:.3f}*|x|) + {popt[2]:.3f}"
+                except RuntimeError:
+                    return None, None, None, "Ошибка аппроксимации (возможно, данные не подходят)"
             else:
-                return None, None, None, "Logarithmic fitting requires all X values to be positive"
+                return None, None, None, "Логарифмическая аппроксимация требует X ≠ 0"
             
         elif model_type == "power":
             # Check for positive x values
