@@ -470,6 +470,17 @@ def update_combined_plot(
             all_x_data.extend(x_data)
             all_y_data.extend(y_data)
             
+            if connect_points:
+                fig.add_trace(go.Scatter(
+                    x=x_data,
+                    y=y_data,
+                    mode='lines',
+                    name='Connected Points',
+                    line=dict(color=config.get('data_color', '#1f77b4'), width=1, dash='solid'),  # Исправлено здесь
+                    opacity=0.7,
+                    hoverinfo='skip'
+                ))
+            
             # Add data points if enabled
                         # Add data points if enabled
             if config.get('show_data', True):
