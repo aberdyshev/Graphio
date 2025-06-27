@@ -50,8 +50,8 @@ def exponential_func(x: np.ndarray, a: float, b: float, c: float) -> np.ndarray:
 
 
 def logarithmic_func(x: np.ndarray, a: float, b: float, c: float) -> np.ndarray:
-    """Logarithmic function: f(x) = a * ln(b * x) + c"""
-    return a * np.log(b * x) + c
+    """Logarithmic function with sign preservation: f(x) = sign(x) * a * ln(b * |x|) + c"""
+    return np.sign(x) * a * np.log(b * np.abs(x)) + c
 
 
 def power_func(x: np.ndarray, a: float, b: float) -> np.ndarray:
@@ -69,13 +69,18 @@ def fit_alternative_model(x_data: np.ndarray, y_data: np.ndarray, model_type: st
             return exponential_func, popt, pcov, f"f(x) = {popt[0]:.3f} * exp({popt[1]:.3f} * x) + {popt[2]:.3f}"
             
         elif model_type == "logarithmic":
-            # Check for positive x values
-            if np.any(x_data <= 0):
-                return None, None, None, "Logarithmic fitting requires all X values to be positive"
-            
-            popt, pcov = curve_fit(logarithmic_func, x_data, y_data, 
-                                 p0=[1, 1, 0], maxfev=5000)
-            return logarithmic_func, popt, pcov, f"f(x) = {popt[0]:.3f} * ln({popt[1]:.3f} * x) + {popt[2]:.3f}"
+        # Проверка на ненулевые значения
+            if np.all(x != 0 for x in x_data):
+                try:
+                    # Начальные приближения с учетом знака
+                    p0 = [1.0, 1.0, 0.0]
+                    popt, pcov = curve_fit(logarithmic_func, x_data, y_data, 
+                                         p0=p0, maxfev=5000)
+                    return logarithmic_func, popt, pcov, f"f(x) = sign(x)*{popt[0]:.3f} * ln({popt[1]:.3f}*|x|) + {popt[2]:.3f}"
+                except RuntimeError:
+                    return None, None, None, "Ошибка аппроксимации (возможно, данные не подходят)"
+            else:
+                return None, None, None, "Логарифмическая аппроксимация требует X ≠ 0"
             
         elif model_type == "power":
             # Check for positive x values
@@ -93,32 +98,29 @@ def fit_alternative_model(x_data: np.ndarray, y_data: np.ndarray, model_type: st
         return None, None, None, f"Fitting failed: {str(e)}"
 
 
-def calculate_extrapolation(func: Callable, x_data: np.ndarray, n_steps: int, step_size: Optional[float] = None, model_params: Optional[np.ndarray] = None) -> Tuple[Optional[np.ndarray], Optional[np.ndarray], Optional[str]]:
-    """Calculate extrapolated values."""
+def calculate_extrapolation(fit_func, x_data, n_steps, step_size=None, model_params=None):
+    """Calculate extrapolation points starting immediately after the last data point"""
+    if len(x_data) == 0:
+        return None, None, "No data available for extrapolation"
+    
     try:
-        if len(x_data) == 0:
-            return None, None, "No data available for extrapolation"
+        last_x = x_data[-1]
         
-        x_max = np.max(x_data)
-        
-        # Determine step size
+        # Calculate automatic step size if not provided
         if step_size is None or step_size <= 0:
-            x_range = np.max(x_data) - np.min(x_data)
-            step_size = x_range / len(x_data) if len(x_data) > 1 else 1.0
+            if len(x_data) > 1:
+                step_size = np.mean(np.diff(x_data))  # Средний шаг исходных данных
+            else:
+                step_size = 1.0  # Значение по умолчанию для одного элемента
         
-        # Generate extrapolation points
-        x_extrap = np.array([x_max + (i + 1) * step_size for i in range(n_steps)])
+        # Генерируем точки экстраполяции НАЧИНАЯ С последней точки
+        x_extrap = np.array([last_x + i*step_size for i in range(1, n_steps+1)])
         
-        # Calculate y values
         if model_params is not None:
-            y_extrap = func(x_extrap, *model_params)
+            y_extrap = fit_func(x_extrap, *model_params)
         else:
-            y_extrap = func(x_extrap)
-        
-        # Check for numerical issues
-        if np.any(np.isnan(y_extrap)) or np.any(np.isinf(y_extrap)):
-            return None, None, "Extrapolation resulted in invalid values (NaN or Inf)"
-        
+            y_extrap = fit_func(x_extrap)
+            
         return x_extrap, y_extrap, None
         
     except Exception as e:

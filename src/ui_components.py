@@ -1,3 +1,5 @@
+# --- START OF FILE ui_components.py ---
+
 """
 Gradio User Interface Module
 
@@ -8,9 +10,10 @@ import gradio as gr
 from .data_input import handle_file_change
 from .dataset_management import (
     create_new_curve, duplicate_curve, delete_curve, switch_curve, save_current_curve_config,
-    save_app_configuration, load_app_configuration # Added new functions
+    save_app_configuration, load_app_configuration
 )
-from .plotting import update_combined_plot, update_plot_and_fit, update_slider_only
+# Removed update_plot_and_fit as it is not used in this file
+from .plotting import update_combined_plot, update_slider_only
 
 
 def create_gradio_interface():
@@ -29,7 +32,7 @@ def create_gradio_interface():
             'name': 'Dataset 1',
             'x_text': '0, 1, 2, 3, 4, 5, 6',
             'y_text': '-1.2, 0, 0.6, 1.2, 2.4, 5.0, 9.8',
-            'z_text': '',  # Add Z text field
+            'z_text': '',
             'degree': 3,
             'data_color': '#1f77b4',
             'fit_color': '#ff7f0e',
@@ -41,7 +44,7 @@ def create_gradio_interface():
             'x_errors_text': '',
             'y_errors_text': '',
             'show_error_bars': False,
-            'file_df': None, # This will be serialized/deserialized
+            'file_df': None,
             'x_col_name': None,
             'y_col_name': None,
             'z_col_name': None,
@@ -53,33 +56,21 @@ def create_gradio_interface():
 
         with gr.Row():
             with gr.Column(scale=1):
-                # Configuration Management Section
-                gr.Markdown("### 💾 Configuration Management")
-                with gr.Row():
-                    save_config_button = gr.Button("Save Configuration", size="sm")
-                    load_config_file_input = gr.File(
-                        label="Load Configuration File", 
-                        file_types=[".json"], 
-                        type="filepath",
-                        scale=2 # Give more space to file input
-                    )
-                config_management_status = gr.Textbox(label="Config Status", interactive=False, lines=2)
-                download_config_link = gr.File(label="Download Saved Configuration", interactive=False)
 
                 gr.Markdown("### 📊 Dataset Management")
                 with gr.Row():
-                    curve_selector = gr.Dropdown(
+                    curve_selector = gr.Radio(
                         choices=['Dataset 1'],
                         value='Dataset 1',
                         label="Select Dataset",
                         interactive=True
                     )
-                
+
                 with gr.Row():
                     new_curve_btn = gr.Button("➕ Add Dataset", size="sm")
                     duplicate_curve_btn = gr.Button("📋 Duplicate", size="sm")
                     delete_curve_btn = gr.Button("🗑️ Delete", size="sm")
-                
+
                 curve_status = gr.Textbox(
                     label="Dataset Status",
                     interactive=False,
@@ -108,16 +99,16 @@ def create_gradio_interface():
                             lines=2,
                             value=""
                         )
-                    
+
                     with gr.TabItem("📁 File Upload"):
                         file_input = gr.File(
                             label="Upload CSV/Excel File",
                             file_types=[".csv", ".xlsx", ".xls"],
                             type="filepath"
                         )
-                        
+
                         file_dataframe_state = gr.State(None)
-                        
+
                         with gr.Row():
                             x_column_dropdown = gr.Dropdown(
                                 choices=[], value=None, label="X Column", interactive=True
@@ -128,38 +119,47 @@ def create_gradio_interface():
                             z_column_dropdown = gr.Dropdown(
                                 choices=[], value=None, label="Z Column (Optional)", interactive=True
                             )
-                        
+
                         file_status_output = gr.Textbox(
-                            label="File Status", 
-                            interactive=False, 
+                            label="File Status",
+                            interactive=False,
                             lines=2,
                             value="No file uploaded"
                         )
 
                 gr.Markdown("### ⚙️ Dataset Configuration")
+                # Add the dataset name input here
+                with gr.Column():
+                    dataset_name_input = gr.Textbox(label="Dataset Name", interactive=True)
+                    with gr.Row():
+                        update_name_btn = gr.Button("✔",variant="primary", size="sm")  # маленькая кнопка
+                        placeholder_one = gr.Button("✔",variant="primary", size="sm", visible=False)  # Placeholder for alignment
+
                 with gr.Row():
                     show_data_checkbox = gr.Checkbox(label="Show Data Points", value=True)
                     show_fit_checkbox = gr.Checkbox(label="Show Polynomial Fit", value=True)
-                    connect_points_checkbox = gr.Checkbox(label="Connect Points with Lines", value=False)
-                visible_checkbox = gr.Checkbox(label="Visible on Plot", value=True)
-                
+                    connect_points_checkbox = gr.Checkbox(label="Connect Data Points", value=False
+            )
+
+                visible_checkbox = gr.Checkbox(label="Visible on Plot", value=True, visible= False)
+
                 degree_slider = gr.Slider(
                     minimum=0, maximum=10, step=1, value=3,
                     label="Polynomial Degree"
                 )
-                
+
                 fit_type_dropdown = gr.Dropdown(
                     choices=["polynomial"],
                     value="polynomial",
                     label="Fitting Type"
                 )
-                
-                force_3d_checkbox = gr.Checkbox(label="Attempt 3D Surface Plot (if Z data present)", value=False, interactive=True) # Added 3D checkbox
+
+                force_3d_checkbox = gr.Checkbox(label="Attempt 3D Surface Plot (if Z data present)", value=False, interactive=True)
 
                 with gr.Row():
                     data_color_picker = gr.ColorPicker(label="Data Color", value="#1f77b4")
                     fit_color_picker = gr.ColorPicker(label="Fit Color", value="#ff7f0e")
-                
+
                 with gr.Row():
                     data_marker_dropdown = gr.Dropdown(
                         choices=['circle', 'square', 'diamond', 'cross', 'x', 'triangle-up', 'star'],
@@ -169,7 +169,21 @@ def create_gradio_interface():
                         choices=['solid', 'dot', 'dash', 'longdash', 'dashdot'],
                         value='solid', label="Fit Line Style"
                     )
-                
+
+                # Configuration Management Section
+                gr.Markdown("### 💾 Configuration Management")
+                with gr.Row():
+                    save_config_button = gr.Button("Save Configuration", size="sm")
+                    load_config_file_input = gr.File(
+                        label="Load Configuration File",
+                        file_types=[".json"],
+                        type="filepath",
+                        scale=2
+                    )
+                config_management_status = gr.Textbox(label="Config Status", interactive=False, lines=2, visible=False)
+                download_config_link = gr.File(label="Download Saved Configuration", interactive=False, visible=False)
+
+
                 # Error bars
                 show_error_bars_checkbox = gr.Checkbox(label="Show Error Bars", value=False)
                 x_errors_input = gr.Textbox(label="X Uncertainties", placeholder="Optional", lines=1)
@@ -178,36 +192,43 @@ def create_gradio_interface():
             with gr.Column(scale=2):
                 gr.Markdown("### 📈 Multi-Dataset Visualization")
                 plot_output = gr.Plot(label="Combined Plot", show_label=True)
-                
-                equation_output = gr.Textbox(
-                    label="Plot Status", 
-                    interactive=False, 
-                    lines=2
+
+                # Main update button for the combined plot
+                update_button = gr.Button("🚀 Update Multi-Dataset Plot", variant="primary", size="lg")
+
+                equation_output = gr.Markdown(
+                    label="Plot Status",
+                    #interactive=False,
+                    #lines=2,
+                    render=True
                 )
-                
+
                 with gr.Tabs():
                     with gr.TabItem("📊 Statistics"):
-                        statistics_output = gr.Textbox(
-                            label="Statistical Analysis", 
-                            interactive=False, 
-                            lines=15,
-                            show_label=False
+                        statistics_output = gr.Markdown(
+                            label="Statistical Analysis",
+                            #interactive=False,
+                            #lines=15,
+                            show_label=False,
+                            render=True     
                         )
-                    
+
                     with gr.TabItem("📐 Area Analysis"):
-                        area_output = gr.Textbox(
-                            label="Area Under Curve", 
-                            interactive=False, 
-                            lines=15,
-                            show_label=False
+                        area_output = gr.Markdown(
+                            label="Area Under Curve",
+                            #interactive=False,
+                            #lines=10,
+                            show_label=False,
+                            render=True
                         )
-                    
+
                     with gr.TabItem("🔮 Extrapolation"):
-                        extrapolation_output = gr.Textbox(
-                            label="Prediction Results", 
-                            interactive=False, 
-                            lines=12,
-                            show_label=False
+                        extrapolation_output = gr.Markdown(
+                            label="Prediction Results",
+                            #interactive=False,
+                            #lines=12,
+                            show_label=False,
+                            render=True
                         )
 
         with gr.Accordion("Plot Customization and Analysis Tools", open=False):
@@ -221,13 +242,13 @@ def create_gradio_interface():
                     )
                     xaxis_scale_dropdown = gr.Dropdown(choices=["linear", "log"], value="linear", label="X-axis Scale")
                     yaxis_scale_dropdown = gr.Dropdown(choices=["linear", "log"], value="linear", label="Y-axis Scale")
-                
+
                 with gr.Column():
                     gr.Markdown("**Labels & Title**")
                     custom_x_label_input = gr.Textbox(label="X-axis Label", placeholder="X values")
                     custom_y_label_input = gr.Textbox(label="Y-axis Label", placeholder="Y values")
                     custom_title_input = gr.Textbox(label="Plot Title", placeholder="Multi-Dataset Analysis")
-                
+
                 with gr.Column():
                     gr.Markdown("**Font Settings**")
                     font_family_dropdown = gr.Dropdown(
@@ -238,7 +259,7 @@ def create_gradio_interface():
                     axes_font_size_slider = gr.Slider(8, 24, 12, label="Axes Font Size")
                     legend_font_size_slider = gr.Slider(8, 20, 10, label="Legend Font Size")
                     font_color_picker = gr.ColorPicker(label="Font Color", value="#000000")
-            
+
             with gr.Row():
                 with gr.Column():
                     gr.Markdown("**Special Points**")
@@ -248,13 +269,13 @@ def create_gradio_interface():
                     )
                     x_derivative_input = gr.Number(label="X for f'(x)", info="Optional")
                     derivative_output_text = gr.Textbox(label="Derivative", interactive=False, lines=1)
-                
+
                 with gr.Column():
                     gr.Markdown("**Area Under Curve**")
                     show_area_checkbox = gr.Checkbox(label="Show Area", value=False)
                     area_start_x_input = gr.Number(label="Start X")
                     area_end_x_input = gr.Number(label="End X")
-                
+
                 with gr.Column():
                     gr.Markdown("**Extrapolation**")
                     show_extrapolation_checkbox = gr.Checkbox(label="Show Extrapolation", value=False)
@@ -265,8 +286,10 @@ def create_gradio_interface():
         def handle_save_config(all_configs):
             filepath, error = save_app_configuration(all_configs)
             if error:
-                return None, f"🔴 Error: {error}"
-            return filepath, f"✅ Configuration saved to: {filepath}"
+                # Не показываем download, только статус
+                return None, gr.update(value=f"🔴 Error: {error}", visible=True)
+            # Показываем download и статус
+            return gr.update(value=filepath, visible=True), gr.update(value=f"✅ Configuration saved to: {filepath}", visible=True)
 
         save_config_button.click(
             fn=handle_save_config,
@@ -276,27 +299,51 @@ def create_gradio_interface():
 
         def handle_load_config(file_obj, current_curve_configs, current_curve_names, current_idx):
             if file_obj is None:
-                return current_curve_configs, current_curve_names, current_idx, "", "No file selected for loading.", gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
-            
-            filepath = file_obj.name # .name contains the path for gr.File
+                return (
+                    current_curve_configs, current_curve_names, current_idx, gr.update(),
+                    gr.update(value="No file selected for loading.", visible=True),  # config status
+                    gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update()
+                )
+
+            filepath = file_obj.name
             loaded_configs, error = load_app_configuration(filepath)
-            
+
             if error:
-                return current_curve_configs, current_curve_names, current_idx, "", f"🔴 Error loading: {error}", gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
-            
-            if not loaded_configs: # Empty list or None
-                return current_curve_configs, current_curve_names, current_idx, "", "ℹ️ Loaded configuration is empty or invalid. No changes applied.", gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update()
+                return (
+                    current_curve_configs, current_curve_names, current_idx, gr.update(),
+                    gr.update(value=f"🔴 Error loading: {error}", visible=True),  # config status
+                    gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update()
+                )
+
+            if not loaded_configs:
+                return (
+                    current_curve_configs, current_curve_names, current_idx, gr.update(),
+                    gr.update(value="ℹ️ Loaded configuration is empty or invalid. No changes applied.", visible=True),  # config status
+                    gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update()
+                )
 
             new_curve_names = [config.get('name', f'Dataset {i+1}') for i, config in enumerate(loaded_configs)]
-            new_current_idx = 0 if new_curve_names else 0 # Default to first curve or 0 if empty
+            new_current_idx = 0 if new_curve_names else 0
             new_curve_selector_value = new_curve_names[new_current_idx] if new_curve_names else None
-            
-            # Prepare outputs for switch_curve logic (or similar updates)
-            # This needs to match the outputs of switch_curve
+
             if loaded_configs:
                 first_config = loaded_configs[new_current_idx]
-                ui_updates = (
+                return (
+                    loaded_configs,
+                    new_curve_names,
                     new_current_idx,
+                    gr.Dropdown(choices=new_curve_names, value=new_curve_selector_value),
+                    gr.update(value=f"✅ Configuration loaded from: {filepath}", visible=True),  # config status
+                    gr.Textbox(value=first_config.get('name', '')),
                     gr.Textbox(value=first_config.get('x_text', '')),
                     gr.Textbox(value=first_config.get('y_text', '')),
                     gr.Textbox(value=first_config.get('z_text', '')),
@@ -315,54 +362,102 @@ def create_gradio_interface():
                     gr.Checkbox(value=first_config.get('force_3d', False)),
                     f"✅ Loaded {len(loaded_configs)} dataset(s). Active: {new_curve_selector_value}"
                 )
-                # Also need to update file_dataframe_state and column dropdowns if file data was loaded
-                # This part is tricky as switch_curve doesn't directly return file_dataframe_state or column dropdowns
-                # For simplicity, we might need a dedicated function or make switch_curve more comprehensive
-                # For now, file data will be in loaded_configs, but UI for file selection won't auto-update from this load.
-                # User would need to re-select columns if they want to modify file-based data after load.
-            else: # Should not happen if loaded_configs is not empty check above passed
-                ui_updates = tuple([gr.update() for _ in range(17)]) + ("No datasets loaded",)
+            else:
+                return (
+                    loaded_configs, new_curve_names, new_current_idx, gr.Dropdown(choices=new_curve_names, value=new_curve_selector_value),
+                    gr.update(value=f"✅ Configuration loaded from: {filepath}", visible=True),  # config status
+                    gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update(), gr.update(), gr.update(), gr.update(),
+                    "No datasets loaded"
+                )
 
-            return loaded_configs, new_curve_names, new_current_idx, gr.Dropdown(choices=new_curve_names, value=new_curve_selector_value), f"✅ Configuration loaded from: {filepath}", *ui_updates[1:] # Unpack starting from x_input
 
         load_config_file_input.upload(
             fn=handle_load_config,
             inputs=[load_config_file_input, curve_configs_state, curve_names_state, current_curve_idx_state],
             outputs=[
                 curve_configs_state, curve_names_state, current_curve_idx_state, curve_selector, config_management_status,
-                # Outputs to update the UI for the first loaded curve (matches switch_curve outputs)
-                x_input, y_input, z_input, degree_slider,
+                # Outputs to update the UI for the first loaded curve (matches switch_curve outputs + dataset_name_input)
+                dataset_name_input, x_input, y_input, z_input, degree_slider,
                 data_color_picker, fit_color_picker, data_marker_dropdown, fit_line_dropdown,
                 fit_type_dropdown, show_fit_checkbox, show_data_checkbox,
                 x_errors_input, y_errors_input, show_error_bars_checkbox, visible_checkbox,
-                force_3d_checkbox, curve_status # curve_status is updated by handle_load_config directly
+                force_3d_checkbox, curve_status
             ]
         )
 
         # Dataset management connections
+        # These functions create/delete/duplicate and need to update the dropdown list itself
+        # Use .then() to trigger switch_curve after the dataset list and current index are updated
         new_curve_btn.click(
             fn=create_new_curve,
             inputs=[curve_configs_state, curve_names_state, current_curve_idx_state],
             outputs=[curve_configs_state, curve_names_state, current_curve_idx_state, curve_selector, curve_status]
+        ).then(
+             # After creating/duplicating/deleting, switch to the new/selected curve
+             # Use the value set for curve_selector by the previous function's outputs
+             fn=switch_curve,
+             inputs=[curve_configs_state, curve_names_state, curve_selector],
+             outputs=[
+                current_curve_idx_state, # Update state directly
+                dataset_name_input, x_input, y_input, z_input, degree_slider,
+                data_color_picker, fit_color_picker, data_marker_dropdown, fit_line_dropdown,
+                fit_type_dropdown, show_fit_checkbox, show_data_checkbox,
+                x_errors_input, y_errors_input, show_error_bars_checkbox, visible_checkbox,
+                force_3d_checkbox, # Added force_3d_checkbox to outputs
+                curve_status
+             ]
         )
 
         duplicate_curve_btn.click(
             fn=duplicate_curve,
             inputs=[curve_configs_state, curve_names_state, current_curve_idx_state],
             outputs=[curve_configs_state, curve_names_state, current_curve_idx_state, curve_selector, curve_status]
+        ).then(
+             # After duplicating, switch to the new duplicated curve
+             fn=switch_curve,
+             inputs=[curve_configs_state, curve_names_state, curve_selector],
+             outputs=[
+                current_curve_idx_state,
+                dataset_name_input, x_input, y_input, z_input, degree_slider,
+                data_color_picker, fit_color_picker, data_marker_dropdown, fit_line_dropdown,
+                fit_type_dropdown, show_fit_checkbox, show_data_checkbox,
+                x_errors_input, y_errors_input, show_error_bars_checkbox, visible_checkbox,
+                force_3d_checkbox,
+                curve_status
+             ]
         )
 
         delete_curve_btn.click(
             fn=delete_curve,
             inputs=[curve_configs_state, curve_names_state, current_curve_idx_state],
             outputs=[curve_configs_state, curve_names_state, current_curve_idx_state, curve_selector, curve_status]
+        ).then(
+             # After deleting, switch to the new active curve
+             fn=switch_curve,
+             inputs=[curve_configs_state, curve_names_state, curve_selector],
+             outputs=[
+                current_curve_idx_state,
+                dataset_name_input, x_input, y_input, z_input, degree_slider,
+                data_color_picker, fit_color_picker, data_marker_dropdown, fit_line_dropdown,
+                fit_type_dropdown, show_fit_checkbox, show_data_checkbox,
+                x_errors_input, y_errors_input, show_error_bars_checkbox, visible_checkbox,
+                force_3d_checkbox,
+                curve_status
+             ]
         )
 
+
+        # When switching datasets, update all the config UI elements
+        # switch_curve returns: curve_idx, dataset_name, x_input, y_input, z_input, degree_slider, data_color_picker, fit_color_picker, data_marker_dropdown, fit_line_dropdown, fit_type_dropdown, show_fit_checkbox, show_data_checkbox, x_errors_input, y_errors_input, show_error_bars_checkbox, visible_checkbox, force_3d_checkbox, curve_status
         curve_selector.change(
             fn=switch_curve,
             inputs=[curve_configs_state, curve_names_state, curve_selector],
             outputs=[
-                current_curve_idx_state, x_input, y_input, z_input, degree_slider,
+                current_curve_idx_state, # First output is the updated state
+                dataset_name_input, # Added dataset_name_input here
+                x_input, y_input, z_input, degree_slider,
                 data_color_picker, fit_color_picker, data_marker_dropdown, fit_line_dropdown,
                 fit_type_dropdown, show_fit_checkbox, show_data_checkbox,
                 x_errors_input, y_errors_input, show_error_bars_checkbox, visible_checkbox,
@@ -372,89 +467,202 @@ def create_gradio_interface():
         )
 
         # File upload handling
+        # Note: handle_file_change updates x/y/z_input and file_dataframe_state
+        # When file changes, it should also trigger a save of the *current* curve state
+        # and then potentially update the dropdowns for the *current* curve's config.
+        # This is handled by the save_current_curve_config triggers below.
         file_input.change(
             fn=handle_file_change,
             inputs=[file_input],
             outputs=[x_column_dropdown, y_column_dropdown, z_column_dropdown, file_dataframe_state, x_input, y_input, file_status_output]
         )
 
-        # Main update function
-        update_button = gr.Button("🚀 Update Multi-Dataset Plot", variant="primary", size="lg")
+        # When column selections change, these need to trigger a save of the current curve's config
+        # to store the selected column names and the associated file_df state.
+        # Use the updated save_config_inputs which includes dataset_name_input
+        save_config_inputs_with_name = [ # New list including dataset_name_input
+                curve_configs_state, current_curve_idx_state,
+                dataset_name_input, # Added
+                x_input, y_input, z_input, degree_slider,
+                data_color_picker, fit_color_picker, data_marker_dropdown, fit_line_dropdown,
+                fit_type_dropdown, show_fit_checkbox, show_data_checkbox,
+                x_errors_input, y_errors_input, show_error_bars_checkbox,
+                visible_checkbox, force_3d_checkbox,
+                file_dataframe_state,
+                x_column_dropdown, y_column_dropdown, z_column_dropdown
+            ]
+
+        # Connect the change events for the column dropdowns to save the state
+        x_column_dropdown.change(
+            fn=save_current_curve_config,
+            inputs=save_config_inputs_with_name,
+            outputs=[curve_configs_state]
+        )
+        y_column_dropdown.change(
+            fn=save_current_curve_config,
+            inputs=save_config_inputs_with_name,
+            outputs=[curve_configs_state]
+        )
+        z_column_dropdown.change(
+            fn=save_current_curve_config,
+            inputs=save_config_inputs_with_name,
+            outputs=[curve_configs_state]
+        )
+
+
         
+
         # Consolidate all inputs for the combined plot
-        # These are inputs that affect the overall plot, not individual curve configs
-        # Individual curve configs are passed via curve_configs_state
         combined_plot_inputs = [
-            curve_configs_state, # This now carries all individual curve settings including force_3d
-            plot_options_checkbox, 
-            xaxis_scale_dropdown, 
-            yaxis_scale_dropdown, 
-            special_points_checkbox, # This is for the combined plot, if applicable
-            x_derivative_input, # This might be less relevant for combined, or apply to first curve?
-            custom_x_label_input, 
-            custom_y_label_input, 
-            custom_title_input, 
-            font_family_dropdown, 
-            title_font_size_slider, 
-            axes_font_size_slider, 
-            legend_font_size_slider, 
-            font_color_picker, 
-            area_start_x_input, # Area for combined or first curve?
-            area_end_x_input, 
-            show_area_checkbox, 
-            n_extrapolation_steps_input, # Extrapolation for combined or first curve?
-            extrapolation_step_size_input, 
+            curve_configs_state,
+            plot_options_checkbox,
+            xaxis_scale_dropdown,
+            yaxis_scale_dropdown,
+            special_points_checkbox,
+            x_derivative_input,
+            custom_x_label_input,
+            custom_y_label_input,
+            custom_title_input,
+            font_family_dropdown,
+            title_font_size_slider,
+            axes_font_size_slider,
+            legend_font_size_slider,
+            font_color_picker,
+            area_start_x_input,
+            area_end_x_input,
+            show_area_checkbox,
+            n_extrapolation_steps_input,
+            extrapolation_step_size_input,
             show_extrapolation_checkbox,
             connect_points_checkbox
         ]
-        
+
         update_button.click(
             fn=update_combined_plot,
-            inputs=combined_plot_inputs, # Use the consolidated list
+            inputs=combined_plot_inputs,
             outputs=[plot_output, equation_output, derivative_output_text, statistics_output, area_output, extrapolation_output]
         )
 
         # Auto-save current dataset configuration
         # This function is triggered when individual curve settings are changed
         # It saves the current state of UI elements for the active curve into curve_configs_state
-        
+
         # Define the list of UI components that, when changed, should trigger an auto-save
         # of the currently selected dataset's configuration.
+        # Added dataset_name_input here
         auto_save_trigger_components = [
-            x_input, y_input, z_input, degree_slider, 
-            data_color_picker, fit_color_picker, data_marker_dropdown, fit_line_dropdown,
-            fit_type_dropdown, show_fit_checkbox, show_data_checkbox, 
-            x_errors_input, y_errors_input, show_error_bars_checkbox, 
-            visible_checkbox, force_3d_checkbox, # force_3d is part of individual curve config
-            # File-related dropdowns also need to trigger save if they change the active curve's config
-            x_column_dropdown, y_column_dropdown, z_column_dropdown, connect_points_checkbox
-        ]
-
-        # Define the list of all inputs needed by save_current_curve_config
-        # This should include all UI elements that define a single curve's state.
-        save_config_inputs = [
-            curve_configs_state, current_curve_idx_state, 
+            dataset_name_input, # Added
             x_input, y_input, z_input, degree_slider,
             data_color_picker, fit_color_picker, data_marker_dropdown, fit_line_dropdown,
-            fit_type_dropdown, show_fit_checkbox, show_data_checkbox, 
-            x_errors_input, y_errors_input, show_error_bars_checkbox, 
+            fit_type_dropdown, show_fit_checkbox, show_data_checkbox,
+            x_errors_input, y_errors_input, show_error_bars_checkbox,
             visible_checkbox, force_3d_checkbox,
-            file_dataframe_state, # This state holds the dataframe for the *currently selected* file if one was uploaded
-            x_column_dropdown, y_column_dropdown, z_column_dropdown, connect_points_checkbox
+            # File-related dropdowns are handled by their specific change events above
+            # file_dataframe_state doesn't have a change event
         ]
-        
-        for component in auto_save_trigger_components:
-            component.change(
-                fn=save_current_curve_config,
-                inputs=save_config_inputs, # Use the consolidated list
-                outputs=[curve_configs_state] # Only curve_configs_state is modified by saving
+
+        def handle_dataset_name_change(curve_names, curve_configs, current_idx, new_name):
+            updated_names = list(curve_names)
+            updated_names[current_idx] = new_name
+            updated_configs = list(curve_configs)
+            updated_configs[current_idx] = dict(updated_configs[current_idx])
+            updated_configs[current_idx]['name'] = new_name
+
+            # value всегда только по индексу!
+            if 0 <= current_idx < len(updated_names):
+                value = updated_names[current_idx]
+            elif updated_names:
+                value = updated_names[0]
+            else:
+                value = None
+
+            return (
+                updated_names,
+                updated_configs,
+                gr.update(choices=updated_names, value=value),
             )
 
-        # Initial load - uses the same inputs as the update_button
-        demo.load(
-            fn=update_combined_plot,
-            inputs=combined_plot_inputs, # Use the consolidated list
-            outputs=[plot_output, equation_output, derivative_output_text, statistics_output, area_output, extrapolation_output]
+        update_name_btn.click(
+            fn=handle_dataset_name_change,
+            inputs=[curve_names_state, curve_configs_state, current_curve_idx_state, dataset_name_input],
+            outputs=[curve_names_state, curve_configs_state, curve_selector]
         )
+
+        # Use the updated save_config_inputs list
+        # The file column dropdowns are *inputs* to save_current_curve_config,
+        # but their *changes* are handled by the specific triggers above to ensure
+        # the change().then() sequence works correctly.
+        save_config_inputs_for_triggers = [
+             curve_configs_state, current_curve_idx_state,
+             dataset_name_input, x_input, y_input, z_input, degree_slider,
+             data_color_picker, fit_color_picker, data_marker_dropdown, fit_line_dropdown,
+             fit_type_dropdown, show_fit_checkbox, show_data_checkbox,
+             x_errors_input, y_errors_input, show_error_bars_checkbox,
+             visible_checkbox, force_3d_checkbox,
+             file_dataframe_state, x_column_dropdown, y_column_dropdown, z_column_dropdown
+        ]
+
+        # Connect the auto-save triggers (excluding the file column dropdowns as they have their own trigger chain)
+        for component in [c for c in auto_save_trigger_components if c not in [x_column_dropdown, y_column_dropdown, z_column_dropdown]]:
+            component.change(
+                fn=save_current_curve_config,
+                inputs=save_config_inputs_for_triggers,
+                outputs=[curve_configs_state]
+            )
+
+
+        # Initial load - uses the same inputs as the update_button
+        # Also needs to populate the initial dataset configuration UI elements
+        initial_ui_load_outputs = [
+            plot_output, equation_output, derivative_output_text, statistics_output, area_output, extrapolation_output,
+            # Initial state of current curve config UI elements (based on the first dataset)
+            dataset_name_input, x_input, y_input, z_input, degree_slider,
+            data_color_picker, fit_color_picker, data_marker_dropdown, fit_line_dropdown,
+            fit_type_dropdown, show_fit_checkbox, show_data_checkbox,
+            x_errors_input, y_errors_input, show_error_bars_checkbox, visible_checkbox,
+            force_3d_checkbox, curve_status
+        ]
+
+        # Create a function to handle the initial load of UI elements
+        def initial_load_ui_update(curve_configs, curve_names):
+            if not curve_configs:
+                # This should ideally never happen with the default state
+                # Return a tuple matching the outputs with default/empty values or gr.update()
+                # Length of initial_ui_load_outputs is 6 (plot) + 18 (config) = 24
+                return (
+                    None, "", "", "", "", "", # plot, eq, deriv, stats, area, extrap
+                    gr.update(value=""), gr.update(value=""), gr.update(value=""), gr.update(value=3), # name, x, y, z, degree
+                    gr.update(value="#1f77b4"), gr.update(value="#ff7f0e"), gr.update(value="circle"), gr.update(value="solid"), # colors, marker, line
+                    gr.update(value="polynomial"), gr.update(value=True), gr.update(value=True), # fit_type, show_fit, show_data
+                    gr.update(value=""), gr.update(value=""), gr.update(value=False), gr.update(value=True), # errors, show_err, visible
+                    gr.update(value=False), # force_3d
+                    "No datasets available" # curve_status
+                )
+
+            # switch_curve returns: curve_idx, dataset_name, x_input, y_input, z_input, degree_slider, data_color_picker, fit_color_picker, data_marker_dropdown, fit_line_dropdown, fit_type_dropdown, show_fit_checkbox, show_data_checkbox, x_errors_input, y_errors_input, show_error_bars_checkbox, visible_checkbox, force_3d_checkbox, curve_status
+            initial_switch_outputs = switch_curve(curve_configs, curve_names, curve_names[0])
+
+            # Combine plot outputs (empty initially) with the initial switch outputs
+            initial_plot_outputs = (None, "", "", "", "", "") # plot, equation, derivative, stats, area, extrapolation
+
+            # The outputs for initial_ui_load_outputs are the 6 plot outputs + the 18 switch_curve UI outputs (excluding the first element which is the state update)
+            combined_outputs = initial_plot_outputs + initial_switch_outputs[1:] # Exclude current_curve_idx_state from switch_curve outputs
+
+            return combined_outputs
+
+        # Initial UI load (populate config fields for the first dataset)
+        demo.load(
+            fn=initial_load_ui_update,
+            inputs=[curve_configs_state, curve_names_state],
+            outputs=initial_ui_load_outputs,
+            queue=False
+        ).then(
+             # After populating the UI, trigger the first plot update
+             fn=update_combined_plot,
+             inputs=combined_plot_inputs,
+             outputs=[plot_output, equation_output, derivative_output_text, statistics_output, area_output, extrapolation_output],
+             queue=False
+        )
+
 
     return demo
