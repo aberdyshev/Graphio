@@ -45,7 +45,7 @@ def create_gradio_interface():
             "Upload files or input data manually to fit polynomials, analyze statistics, and visualize results. "
             "Each dataset can have its own polynomial fit, styling, and configuration. "
             "💡 **Z-axis support**: Add optional Z values for color mapping in both manual input and file upload."
-            "📈 **Log-scale support**: You can use logarithmic axes for X and Y if all data points are non-negative."
+            "📈 **Log-scale support**: You can use logarithmic axes for X and Y if all data points are non-zero."
 
         )
 
