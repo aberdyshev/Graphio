@@ -15,7 +15,7 @@ from .plotting import update_combined_plot, update_plot_and_fit, update_slider_o
 
 def create_gradio_interface():
     """Create and configure the Gradio interface."""
-    
+
     with gr.Blocks(theme=gr.themes.Soft()) as demo:
         gr.Markdown(
             "# 📊 Multi-Dataset Polynomial Fitting & Analysis Tool\n"
@@ -140,7 +140,7 @@ def create_gradio_interface():
                 with gr.Row():
                     show_data_checkbox = gr.Checkbox(label="Show Data Points", value=True)
                     show_fit_checkbox = gr.Checkbox(label="Show Polynomial Fit", value=True)
-                
+                    connect_points_checkbox = gr.Checkbox(label="Connect Points with Lines", value=False)
                 visible_checkbox = gr.Checkbox(label="Visible on Plot", value=True)
                 
                 degree_slider = gr.Slider(
@@ -404,7 +404,8 @@ def create_gradio_interface():
             show_area_checkbox, 
             n_extrapolation_steps_input, # Extrapolation for combined or first curve?
             extrapolation_step_size_input, 
-            show_extrapolation_checkbox
+            show_extrapolation_checkbox,
+            connect_points_checkbox
         ]
         
         update_button.click(
@@ -426,7 +427,7 @@ def create_gradio_interface():
             x_errors_input, y_errors_input, show_error_bars_checkbox, 
             visible_checkbox, force_3d_checkbox, # force_3d is part of individual curve config
             # File-related dropdowns also need to trigger save if they change the active curve's config
-            x_column_dropdown, y_column_dropdown, z_column_dropdown 
+            x_column_dropdown, y_column_dropdown, z_column_dropdown, connect_points_checkbox
         ]
 
         # Define the list of all inputs needed by save_current_curve_config
@@ -439,7 +440,7 @@ def create_gradio_interface():
             x_errors_input, y_errors_input, show_error_bars_checkbox, 
             visible_checkbox, force_3d_checkbox,
             file_dataframe_state, # This state holds the dataframe for the *currently selected* file if one was uploaded
-            x_column_dropdown, y_column_dropdown, z_column_dropdown
+            x_column_dropdown, y_column_dropdown, z_column_dropdown, connect_points_checkbox
         ]
         
         for component in auto_save_trigger_components:

@@ -40,7 +40,8 @@ def create_new_curve(curve_configs: List[Dict], curve_names: List[str], current_
         'y_col_name': None,
         'z_col_name': None,
         'visible': True,
-        'force_3d': False
+        'force_3d': False,
+        'connect_points': False
     }
     
     curve_configs.append(default_config)
@@ -125,6 +126,7 @@ def switch_curve(curve_configs: List[Dict], curve_names: List[str], selected_cur
         gr.Dropdown(value=config.get('fit_type', 'polynomial')),  # fit_type_dropdown
         gr.Checkbox(value=config.get('show_fit', True)),  # show_fit_checkbox
         gr.Checkbox(value=config.get('show_data', True)),  # show_data_checkbox
+        gr.Checkbox(value=config.get('connect_points', False)),
         gr.Textbox(value=config.get('x_errors_text', '')),  # x_errors_input
         gr.Textbox(value=config.get('y_errors_text', '')),  # y_errors_input
         gr.Checkbox(value=config.get('show_error_bars', False)),  # show_error_bars_checkbox
@@ -146,7 +148,7 @@ def save_current_curve_config(curve_configs: List[Dict], current_curve_idx: int,
         'x_text', 'y_text', 'z_text', 'degree', 'data_color', 'fit_color',
         'data_marker', 'fit_line_style', 'fit_type', 'show_fit', 'show_data',
         'x_errors_text', 'y_errors_text', 'show_error_bars', 'visible', 'force_3d', # Added force_3d
-        'file_df', 'x_col_name', 'y_col_name', 'z_col_name'
+        'file_df', 'x_col_name', 'y_col_name', 'z_col_name',  'connect_points'
     ]
     
     # Update configuration with provided values
