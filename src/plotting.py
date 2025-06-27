@@ -488,27 +488,9 @@ def update_plot_and_fit(
             'marker': dict(color=data_color, symbol=data_marker, size=8)
         }
         
-        if connect_points:
-        # Lomanaya 
-          fig.add_trace(go.Scatter(
-            x=x_data,
-            y=y_data,
-            mode='lines',
-            name='Connected Points',
-            line=dict(color=data_color, width=1, dash='solid'),
-            opacity=0.7,
-            hoverinfo='skip'
-        ))
-        # Enhanced visualization if Z-data is available
-        if z_data is not None:
-            # Use Z-data for color mapping
-            scatter_params['marker']['color'] = z_data
-            scatter_params['marker']['colorscale'] = 'Viridis'
-            scatter_params['marker']['showscale'] = True
-            scatter_params['marker']['colorbar'] = dict(title="Z Values")
-            scatter_params['name'] = f'Data (colored by Z)'
-        
-            def validate_data_length(x_data, y_data):
+
+    
+        def validate_data_length(x_data, y_data):
             
 
         #  Проверяет соответствие количества значений X и Y.
@@ -968,58 +950,67 @@ def update_combined_plot(
             
             all_x_data.extend(x_data)
             all_y_data.extend(y_data)
-            
-            # Add data points if enabled
-            if config.get('show_data', True):                    # Не получился 3D график => строим 2D
-                scatter_params = {
-                    'x': x_data,
-                    'y': y_data,
-                    'mode': 'markers',
-                    'name': f"{config.get('name', f'Curve {i+1}')} - Data",
-                    'marker': dict(color=config.get('data_color', '#1f77b4'), symbol=config.get('data_marker', 'circle'), size=8)
-                }
-                
-                if connect_points:  # Используем переданный параметр
-                    fig.add_trace(go.Scatter(
-                         x=x_data,
-                         y=y_data,
-                         mode='lines',
-                         name=f"{config.get('name', f'Curve {i+1}')} - Lines",
-                         line=dict(color=config.get('data_color', '#1f77b4'), width=1, dash='solid'),
-                         opacity=0.7,
-                         hoverinfo='skip'
-                         ))
-                # Enhanced visualization if Z-data is available (for 2D plots)
-                if z_data is not None:
-                    scatter_params['marker']['color'] = z_data
-                    scatter_params['marker']['colorscale'] = 'Viridis'
-                    scatter_params['marker']['showscale'] = True
-                    scatter_params['marker']['colorbar'] = dict(title=f"Z ({config.get('name', f'Curve {i+1}')})")    # Раскрашиваем точки под Z
-                    scatter_params['name'] = f"{config.get('name', f'Curve {i+1}')} - Data (Z-color)"
-                
-                # Add error bars if configured
-                if config.get('show_error_bars', False):
-                    x_errors_text = config.get('x_errors_text', '')
-                    y_errors_text = config.get('y_errors_text', '')
-                    x_errors, _ = parse_input_data(x_errors_text) if x_errors_text.strip() else ([], None)   #парсинг погрешностей
-                    y_errors, _ = parse_input_data(y_errors_text) if y_errors_text.strip() else ([], None)
+             # Add data points if enabled
+            if config.get('show_data', True):
+                # Проверяем, что данные существуют и не пустые
+                if len(x_data) > 0 and len(y_data) > 0 and len(x_data) == len(y_data):
+                    # Базовые параметры для точек
+                    scatter_params = {
+                        'x': x_data,
+                        'y': y_data,
+                        'mode': 'markers',
+                        'name': config.get('name', f'Curve {i+1}') + ' - Points',
+                        'marker': {
+                            'color': config.get('data_color', '#1f77b4'),
+                            'symbol': config.get('data_marker', 'circle'),
+                            'size': 8
+                        }
+                    }
                     
-                    error_added = False                                                  # выключены ерроры
-                    if x_errors is not None and len(x_errors) == len(x_data):
-                        scatter_params['error_x'] = dict(
-                            type='data', array=x_errors, color=config.get('data_color', '#1f77b4'), thickness=1.5, width=3
-                        )
-                        error_added = True
-                    if y_errors is not None and len(y_errors) == len(y_data):
-                        scatter_params['error_y'] = dict(
-                            type='data', array=y_errors, color=config.get('data_color', '#1f77b4'), thickness=1.5, width=3
-                        )
-                        error_added = True
-                    if error_added:
-                         scatter_params['name'] += ' (errors)'
-                
-                fig.add_trace(go.Scatter(**scatter_params))    # Точечный график
+                    # Добавляем Z-данные для раскраски точек, если они есть
+                    if z_data is not None:
+                        scatter_params['marker']['color'] = z_data
+                        scatter_params['marker']['colorscale'] = 'Viridis'
+                        scatter_params['marker']['showscale'] = True
+                        scatter_params['marker']['colorbar'] = dict(title=f"Z ({config.get('name', f'Curve {i+1}')})")
+                        scatter_params['name'] = f"{config.get('name', f'Curve {i+1}')} - Points (Z-color)"
+                    
+                    # Добавляем погрешности, если они есть
+                    if config.get('show_error_bars', False):
+                        x_errors_text = config.get('x_errors_text', '')
+                        y_errors_text = config.get('y_errors_text', '')
+                        x_errors, _ = parse_input_data(x_errors_text) if x_errors_text.strip() else (None, None)
+                        y_errors, _ = parse_input_data(y_errors_text) if y_errors_text.strip() else (None, None)
+                        
+                        error_added = False
+                        if x_errors is not None and len(x_errors) == len(x_data):
+                            scatter_params['error_x'] = dict(
+                                type='data', array=x_errors, color=config.get('data_color', '#1f77b4'), thickness=1.5, width=3
+                            )
+                            error_added = True
+                        if y_errors is not None and len(y_errors) == len(y_data):
+                            scatter_params['error_y'] = dict(
+                                type='data', array=y_errors, color=config.get('data_color', '#1f77b4'), thickness=1.5, width=3
+                            )
+                            error_added = True
+                        if error_added:
+                            scatter_params['name'] += ' (errors)'
+                    
+                    # Добавляем точки на график
+                    fig.add_trace(go.Scatter(**scatter_params))
             
+            # Добавляем соединение точек, если включено
+            if connect_points and len(x_data) > 1:
+                fig.add_trace(go.Scatter(
+                    x=x_data,
+                    y=y_data,
+                    mode='lines',
+                    name=f"{config.get('name', f'Curve {i+1}')} - Connected",
+                    line=dict(color=config.get('data_color', '#1f77b4'), width=1, dash='solid'),
+                    opacity=0.7,
+                    hoverinfo='skip'
+                ))
+                        
             # Add fitted curve if enabled
             if config.get('show_fit', True) and config.get('fit_type') == 'polynomial': # Only polynomial for combined plot for now
                 try:
