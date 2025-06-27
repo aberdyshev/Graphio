@@ -196,35 +196,39 @@ def create_gradio_interface():
                 # Main update button for the combined plot
                 update_button = gr.Button("🚀 Update Multi-Dataset Plot", variant="primary", size="lg")
 
-                equation_output = gr.Textbox(
+                equation_output = gr.Markdown(
                     label="Plot Status",
-                    interactive=False,
-                    lines=2
+                    #interactive=False,
+                    #lines=2,
+                    render=True
                 )
 
                 with gr.Tabs():
                     with gr.TabItem("📊 Statistics"):
-                        statistics_output = gr.Textbox(
+                        statistics_output = gr.Markdown(
                             label="Statistical Analysis",
-                            interactive=False,
-                            lines=15,
-                            show_label=False
+                            #interactive=False,
+                            #lines=15,
+                            show_label=False,
+                            render=True     
                         )
 
                     with gr.TabItem("📐 Area Analysis"):
-                        area_output = gr.Textbox(
+                        area_output = gr.Markdown(
                             label="Area Under Curve",
-                            interactive=False,
-                            lines=10,
-                            show_label=False
+                            #interactive=False,
+                            #lines=10,
+                            show_label=False,
+                            render=True
                         )
 
                     with gr.TabItem("🔮 Extrapolation"):
-                        extrapolation_output = gr.Textbox(
+                        extrapolation_output = gr.Markdown(
                             label="Prediction Results",
-                            interactive=False,
-                            lines=12,
-                            show_label=False
+                            #interactive=False,
+                            #lines=12,
+                            show_label=False,
+                            render=True
                         )
 
         with gr.Accordion("Plot Customization and Analysis Tools", open=False):
