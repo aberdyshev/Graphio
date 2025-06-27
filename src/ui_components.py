@@ -20,11 +20,33 @@ def create_gradio_interface():
     """Create and configure the Gradio interface."""
 
     with gr.Blocks(theme=gr.themes.Soft()) as demo:
+        gr.HTML(
+            """
+            <style>
+            @import url('https://fonts.googleapis.com/css2?family=CMU+Serif&display=swap');
+        
+            /* Цвет фона чекбокса */
+            input[type="checkbox"] {
+                accent-color: #ff7f0e !important; 
+                background-color: #ff7f0e !important;
+            }
+            body, .gradio-container {
+                background: rgba(0, 97, 255,0.15) !important; /* CornflowerBlue with alpha=0.5 */ }
+            .custom-btn button {
+                background: #ef7500 !important;
+                color: green !important;
+                border: none !important;
+            }
+            </style>
+            """
+        )
         gr.Markdown(
             "# 📊 Multi-Dataset Polynomial Fitting & Analysis Tool\n"
             "Upload files or input data manually to fit polynomials, analyze statistics, and visualize results. "
             "Each dataset can have its own polynomial fit, styling, and configuration. "
             "💡 **Z-axis support**: Add optional Z values for color mapping in both manual input and file upload."
+            "📈 **Log-scale support**: You can use logarithmic axes for X and Y if all data points are non-zero."
+
         )
 
         # Dataset management state
@@ -99,6 +121,8 @@ def create_gradio_interface():
                             lines=2,
                             value=""
                         )
+                        force_3d_checkbox = gr.Checkbox(label="Attempt 3D Surface Plot (if Z data present)",
+                                                             value=False, interactive=True, elem_classes="my-checkbox")
 
                     with gr.TabItem("📁 File Upload"):
                         file_input = gr.File(
@@ -119,6 +143,7 @@ def create_gradio_interface():
                             z_column_dropdown = gr.Dropdown(
                                 choices=[], value=None, label="Z Column (Optional)", interactive=True
                             )
+                            
 
                         file_status_output = gr.Textbox(
                             label="File Status",
@@ -132,14 +157,13 @@ def create_gradio_interface():
                 with gr.Column():
                     dataset_name_input = gr.Textbox(label="Dataset Name", interactive=True)
                     with gr.Row():
-                        update_name_btn = gr.Button("✔",variant="primary", size="sm")  # маленькая кнопка
+                        update_name_btn = gr.Button("✔", size="sm",  elem_classes="custom-btn")  # маленькая кнопка
                         placeholder_one = gr.Button("✔",variant="primary", size="sm", visible=False)  # Placeholder for alignment
 
                 with gr.Row():
-                    show_data_checkbox = gr.Checkbox(label="Show Data Points", value=True)
-                    show_fit_checkbox = gr.Checkbox(label="Show Polynomial Fit", value=True)
-                    connect_points_checkbox = gr.Checkbox(label="Connect Data Points", value=False
-            )
+                    show_data_checkbox = gr.Checkbox(label="Show Data Points", value=True, elem_classes="my-checkbox")
+                    show_fit_checkbox = gr.Checkbox(label="Show Polynomial Fit", value=True, elem_classes="my-checkbox")
+                    connect_points_checkbox = gr.Checkbox(label="Connect Data Points", value=False, elem_classes="my-checkbox")
 
                 visible_checkbox = gr.Checkbox(label="Visible on Plot", value=True, visible= False)
 
@@ -154,7 +178,7 @@ def create_gradio_interface():
                     label="Fitting Type"
                 )
 
-                force_3d_checkbox = gr.Checkbox(label="Attempt 3D Surface Plot (if Z data present)", value=False, interactive=True)
+                
 
                 with gr.Row():
                     data_color_picker = gr.ColorPicker(label="Data Color", value="#1f77b4")
@@ -170,31 +194,14 @@ def create_gradio_interface():
                         value='solid', label="Fit Line Style"
                     )
 
-                # Configuration Management Section
-                gr.Markdown("### 💾 Configuration Management")
-                with gr.Row():
-                    save_config_button = gr.Button("Save Configuration", size="sm")
-                    load_config_file_input = gr.File(
-                        label="Load Configuration File",
-                        file_types=[".json"],
-                        type="filepath",
-                        scale=2
-                    )
-                config_management_status = gr.Textbox(label="Config Status", interactive=False, lines=2, visible=False)
-                download_config_link = gr.File(label="Download Saved Configuration", interactive=False, visible=False)
-
-
-                # Error bars
-                show_error_bars_checkbox = gr.Checkbox(label="Show Error Bars", value=False)
-                x_errors_input = gr.Textbox(label="X Uncertainties", placeholder="Optional", lines=1)
-                y_errors_input = gr.Textbox(label="Y Uncertainties", placeholder="Optional", lines=1)
+                
 
             with gr.Column(scale=2):
                 gr.Markdown("### 📈 Multi-Dataset Visualization")
                 plot_output = gr.Plot(label="Combined Plot", show_label=True)
 
                 # Main update button for the combined plot
-                update_button = gr.Button("🚀 Update Multi-Dataset Plot", variant="primary", size="lg")
+                update_button = gr.Button("🚀 Update Multi-Dataset Plot", size="lg", elem_classes="custom-btn")
 
                 equation_output = gr.Markdown(
                     label="Plot Status",
@@ -230,15 +237,33 @@ def create_gradio_interface():
                             show_label=False,
                             render=True
                         )
+                # Configuration Management Section
+                gr.Markdown("### 💾 Configuration Management")
+                with gr.Column():
+                    save_config_button = gr.Button("Save Configuration", size="sm")
+                    load_config_file_input = gr.File(
+                        label="Load Configuration File",
+                        file_types=[".json"],
+                        type="filepath",
+                        scale=2
+                    )
+                config_management_status = gr.Textbox(label="Config Status", interactive=False, lines=2, visible=False)
+                download_config_link = gr.File(label="Download Saved Configuration", interactive=False, visible=False)
 
-        with gr.Accordion("Plot Customization and Analysis Tools", open=False):
-            with gr.Row():
+
+                # Error bars
+                show_error_bars_checkbox = gr.Checkbox(label="Show Error Bars (Enter value for every data point)", value=False, elem_classes="my-checkbox")
+                x_errors_input = gr.Textbox(label="X Uncertainties", placeholder="Optional", lines=1)
+                y_errors_input = gr.Textbox(label="Y Uncertainties", placeholder="Optional", lines=1)
+
+        with gr.Row("Plot Customization and Analysis Tools"):
+            with gr.Column():
                 with gr.Column():
                     gr.Markdown("**Display Options**")
                     plot_options_checkbox = gr.CheckboxGroup(
                         ["Show Grid", "Show Axes Labels", "Show Title"],
                         label="Plot Options",
-                        value=["Show Grid", "Show Axes Labels", "Show Title"]
+                        value=["Show Grid", "Show Axes Labels", "Show Title"], elem_classes="my-checkbox"
                     )
                     xaxis_scale_dropdown = gr.Dropdown(choices=["linear", "log"], value="linear", label="X-axis Scale")
                     yaxis_scale_dropdown = gr.Dropdown(choices=["linear", "log"], value="linear", label="Y-axis Scale")
@@ -247,38 +272,38 @@ def create_gradio_interface():
                     gr.Markdown("**Labels & Title**")
                     custom_x_label_input = gr.Textbox(label="X-axis Label", placeholder="X values")
                     custom_y_label_input = gr.Textbox(label="Y-axis Label", placeholder="Y values")
-                    custom_title_input = gr.Textbox(label="Plot Title", placeholder="Multi-Dataset Analysis")
+                    custom_title_input = gr.Textbox(label="Plot Title", placeholder="Data and Polynomial Fit")
 
                 with gr.Column():
                     gr.Markdown("**Font Settings**")
                     font_family_dropdown = gr.Dropdown(
-                        choices=["Arial", "Times New Roman", "Courier New", "Georgia"],
+                        choices=["Arial", "Times New Roman", "Courier New", "Georgia", "CMU Serif"],
                         value="Arial", label="Font Family"
                     )
-                    title_font_size_slider = gr.Slider(8, 32, 16, label="Title Font Size")
-                    axes_font_size_slider = gr.Slider(8, 24, 12, label="Axes Font Size")
-                    legend_font_size_slider = gr.Slider(8, 20, 10, label="Legend Font Size")
+                    title_font_size_slider = gr.Slider(8, 54, 16, label="Title Font Size")
+                    axes_font_size_slider = gr.Slider(8, 32, 12, label="Axes Font Size")
+                    legend_font_size_slider = gr.Slider(8, 32, 10, label="Legend Font Size")
                     font_color_picker = gr.ColorPicker(label="Font Color", value="#000000")
 
-            with gr.Row():
+            with gr.Column():
                 with gr.Column():
                     gr.Markdown("**Special Points**")
                     special_points_checkbox = gr.CheckboxGroup(
                         ["Show Extrema", "Show X-Intercepts", "Show Y-Intercept"],
-                        label="Special Points", value=[]
+                        label="Special Points", value=[], elem_classes="my-checkbox"
                     )
                     x_derivative_input = gr.Number(label="X for f'(x)", info="Optional")
                     derivative_output_text = gr.Textbox(label="Derivative", interactive=False, lines=1)
 
                 with gr.Column():
                     gr.Markdown("**Area Under Curve**")
-                    show_area_checkbox = gr.Checkbox(label="Show Area", value=False)
+                    show_area_checkbox = gr.Checkbox(label="Show Area", value=False, elem_classes="my-checkbox")
                     area_start_x_input = gr.Number(label="Start X")
                     area_end_x_input = gr.Number(label="End X")
 
                 with gr.Column():
                     gr.Markdown("**Extrapolation**")
-                    show_extrapolation_checkbox = gr.Checkbox(label="Show Extrapolation", value=False)
+                    show_extrapolation_checkbox = gr.Checkbox(label="Show Extrapolation", value=False, elem_classes="my-checkbox")
                     n_extrapolation_steps_input = gr.Number(label="Steps", value=5, minimum=1, maximum=50)
                     extrapolation_step_size_input = gr.Number(label="Step Size", info="Optional")
 

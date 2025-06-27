@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Multi-Dataset Polynomial Fitting & Analysis Tool - Main Application
 
@@ -13,8 +14,7 @@ Modules:
 - src.plotting: Plotting and visualization functions
 - src.ui_components: Gradio UI layout and components
 """
-import socket
-from contextlib import closing
+
 import sys
 import os
 
@@ -23,13 +23,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 # Import the UI creation function
 from src.ui_components import create_gradio_interface
-                                                                                                        # я выбираю какой-то порт 
-def find_free_port():
-    """Находит полностью свободный порт."""
-    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-        s.bind(('', 0))  # 0 = OS выберет свободный порт
-        s.listen(1)
-        return s.getsockname()[1]  # Возвращает номер порта
 
 def main():
     """Main function to launch the application."""
@@ -38,18 +31,16 @@ def main():
     
     try:
         # Create the Gradio interface
-        demo = create_gradio_interface()                                                                 # интерфейс -> ui_components
+        demo = create_gradio_interface()
         
         print("✅ Application loaded successfully!")
         print("🌐 Launching web interface...")
         
         # Launch the application
-
-
         demo.launch(
             share=False,  # Set to True if you want a public link
-            server_name="127.0.0.1",  # Local access only
-            server_port= find_free_port(),  # Default Gradio port               # запуская на каком-то iD
+            server_name="0.0.0.0",  # Local access only
+            server_port=3000,  # Default Gradio port
             show_error=True,  # Show error messages in the interface
             quiet=False  # Show startup messages
         )
