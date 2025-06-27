@@ -275,7 +275,11 @@ def _configure_plot_layout(fig, plot_options, xaxis_scale, yaxis_scale, custom_x
         
         if "Show Title" in plot_options:
             title = custom_title.strip() if custom_title and custom_title.strip() else "Data and Polynomial Fit"
-            layout_options['title'] = title
+            layout_options['title'] = dict(  
+                text=title, 
+                x=0.5,       # Центрирование по горизонтали
+                y=0.9        # (опционально) чуть выше центра
+            )
         else:
             title = "Data and Polynomial Fit"  # Default title for filename
         # Axis scaling with validation
