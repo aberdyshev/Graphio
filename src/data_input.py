@@ -14,9 +14,11 @@ def parse_input_data(text_data: str) -> Tuple[Optional[np.ndarray], Optional[str
     """Parses comma, space, or newline separated numbers into a numpy array."""
     if not text_data.strip():
         return np.array([]), None
+        
+    normalized_text = re.sub(r',(\d)', r'.\1', text_data.strip())Add commentMore actions
 
     # Replace commas and newlines with spaces, then split
-    numbers_str = re.split(r'[,\s\n]+', text_data.strip())
+    numbers_str = re.split(r'[,\s\n]+', normalized_text)
 
     try:
         # Filter out empty strings resulting from multiple delimiters
