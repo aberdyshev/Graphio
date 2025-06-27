@@ -15,8 +15,7 @@ def parse_input_data(text_data: str) -> Tuple[Optional[np.ndarray], Optional[str
     if not text_data.strip():
         return np.array([]), None
         
-    normalized_text = re.sub(r',(\d)', r'.\1', text_data.strip())Add commentMore actions
-
+    normalized_text = re.sub(r',(\d)', r'.\1', text_data.strip())
     # Replace commas and newlines with spaces, then split
     numbers_str = re.split(r'[,\s\n]+', normalized_text)
 
