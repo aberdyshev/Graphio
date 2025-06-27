@@ -282,22 +282,26 @@ def _configure_plot_layout(fig, plot_options, xaxis_scale, yaxis_scale, custom_x
         x_data = np.asarray(x_data, dtype=float)
         y_data = np.asarray(y_data, dtype=float)
 
-       # Axis scaling with validation
+       # Логарифмическое сжатие по модулю
         if xaxis_scale == "log":
-            if np.any(x_data <= 0):
+            if np.any(x_data == 0):
                 xaxis_scale = "linear"
-                info_msg += "\n⚠️ Логарифмическая шкала X отключена (найдены X ≤ 0)"
+                info_msg += "\n⚠️ Логарифмическая шкала X отключена (найдены нулевые значения)"
             else:
-                # Явно применяем логарифмическую шкалу ТОЛЬКО если данные корректны
-                fig.update_layout(xaxis_type="log")  # Ключевая строка!
-        
+                # Применяем логарифм от модуля с сохранением знака
+                fig.update_layout(xaxis_type="log")
+                if np.any(x_data < 0):
+                    info_msg += "\n⚠️ Внимание: X содержит отрицательные значения (используется log(|x|))"
+                
         if yaxis_scale == "log":
-            if np.any(y_data <= 0):
+            if np.any(y_data == 0):
                 yaxis_scale = "linear"
-                info_msg += "\n⚠️ Логарифмическая шкала Y отключена (найдены Y ≤ 0)"
+                info_msg += "\n⚠️ Логарифмическая шкала Y отключена (найдены нулевые значения)"
             else:
                 fig.update_layout(yaxis_type="log")
-       
+                if np.any(y_data < 0):
+                    info_msg += "\n⚠️ Внимание: Y содержит отрицательные значения (используется log(|y|))"
+              
         layout_options['legend_title_text'] = 'Legend'
         fig.update_layout(
              xaxis=dict(type=xaxis_scale, title="X Axis"),
