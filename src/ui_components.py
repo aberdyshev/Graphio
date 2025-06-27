@@ -131,7 +131,9 @@ def create_gradio_interface():
                 # Add the dataset name input here
                 with gr.Column():
                     dataset_name_input = gr.Textbox(label="Dataset Name", interactive=True)
-                    update_name_btn = gr.Button("✔", size="sm")  # маленькая кнопка
+                    with gr.Row():
+                        update_name_btn = gr.Button("✔",variant="primary", size="sm")  # маленькая кнопка
+                        placeholder_one = gr.Button("✔",variant="primary", size="sm", visible=False)  # Placeholder for alignment
 
                 with gr.Row():
                     show_data_checkbox = gr.Checkbox(label="Show Data Points", value=True)
@@ -178,8 +180,9 @@ def create_gradio_interface():
                         type="filepath",
                         scale=2
                     )
-                config_management_status = gr.Textbox(label="Config Status", interactive=False, lines=2)
-                download_config_link = gr.File(label="Download Saved Configuration", interactive=False)
+                config_management_status = gr.Textbox(label="Config Status", interactive=False, lines=2, visible=False)
+                download_config_link = gr.File(label="Download Saved Configuration", interactive=False, visible=False)
+
 
                 # Error bars
                 show_error_bars_checkbox = gr.Checkbox(label="Show Error Bars", value=False)
@@ -279,8 +282,10 @@ def create_gradio_interface():
         def handle_save_config(all_configs):
             filepath, error = save_app_configuration(all_configs)
             if error:
-                return None, f"🔴 Error: {error}"
-            return filepath, f"✅ Configuration saved to: {filepath}"
+                # Не показываем download, только статус
+                return None, gr.update(value=f"🔴 Error: {error}", visible=True)
+            # Показываем download и статус
+            return gr.update(value=filepath, visible=True), gr.update(value=f"✅ Configuration saved to: {filepath}", visible=True)
 
         save_config_button.click(
             fn=handle_save_config,
@@ -290,82 +295,78 @@ def create_gradio_interface():
 
         def handle_load_config(file_obj, current_curve_configs, current_curve_names, current_idx):
             if file_obj is None:
-                 # Added dataset_name_input to the None return tuple - MUST MATCH switch_curve outputs + config_management_status
-                 # switch_curve outputs are 1 (idx) + 1 (name) + 16 (config ui) + 1 (status) = 19
-                 # handle_load_config outputs are 4 states + 1 config status + 18 ui updates + 1 curve status = 24
-                 # Need 18 gr.update() values + 1 curve_status + 1 config_management_status
-                 return (current_curve_configs, current_curve_names, current_idx, gr.update(), # dropdown
-                         "No file selected for loading.", # config status
-                         gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), # name, x, y, z, degree, data_color, fit_color
-                         gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), # marker, line, type, show_fit, show_data, x_err, y_err
-                         gr.update(), gr.update(), gr.update(), # show_err_bars, visible, force_3d
-                         gr.update() # curve status (should be set to value from switch_curve)
-                        )
+                return (
+                    current_curve_configs, current_curve_names, current_idx, gr.update(),
+                    gr.update(value="No file selected for loading.", visible=True),  # config status
+                    gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update()
+                )
 
-            filepath = file_obj.name # .name contains the path for gr.File
+            filepath = file_obj.name
             loaded_configs, error = load_app_configuration(filepath)
 
             if error:
-                 return (current_curve_configs, current_curve_names, current_idx, gr.update(),
-                         f"🔴 Error loading: {error}",
-                         gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
-                         gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
-                         gr.update(), gr.update(), gr.update(), gr.update(),
-                         gr.update()
-                        )
+                return (
+                    current_curve_configs, current_curve_names, current_idx, gr.update(),
+                    gr.update(value=f"🔴 Error loading: {error}", visible=True),  # config status
+                    gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update()
+                )
 
             if not loaded_configs:
-                 return (current_curve_configs, current_curve_names, current_idx, gr.update(),
-                         "ℹ️ Loaded configuration is empty or invalid. No changes applied.",
-                         gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
-                         gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
-                         gr.update(), gr.update(), gr.update(), gr.update(),
-                         gr.update()
-                        )
+                return (
+                    current_curve_configs, current_curve_names, current_idx, gr.update(),
+                    gr.update(value="ℹ️ Loaded configuration is empty or invalid. No changes applied.", visible=True),  # config status
+                    gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update()
+                )
 
             new_curve_names = [config.get('name', f'Dataset {i+1}') for i, config in enumerate(loaded_configs)]
-            new_current_idx = 0 if new_curve_names else 0 # Default to first curve or 0 if empty
+            new_current_idx = 0 if new_curve_names else 0
             new_curve_selector_value = new_curve_names[new_current_idx] if new_curve_names else None
 
-            # Prepare outputs for switch_curve logic (or similar updates)
-            # switch_curve returns: curve_idx, dataset_name, x_input, y_input, z_input, degree_slider, data_color_picker, fit_color_picker, data_marker_dropdown, fit_line_dropdown, fit_type_dropdown, show_fit_checkbox, show_data_checkbox, x_errors_input, y_errors_input, show_error_bars_checkbox, visible_checkbox, force_3d_checkbox, curve_status
-            # We need to return the new states + config status + the UI updates
             if loaded_configs:
                 first_config = loaded_configs[new_current_idx]
-                # Outputs = states (3) + selector (1) + config status (1) + UI updates (18) + curve status (1) = 24
                 return (
-                    loaded_configs, # new curve_configs_state
-                    new_curve_names, # new curve_names_state
-                    new_current_idx, # new current_curve_idx_state
-                    gr.Dropdown(choices=new_curve_names, value=new_curve_selector_value), # curve_selector update
-                    f"✅ Configuration loaded from: {filepath}", # config_management_status
-                    gr.Textbox(value=first_config.get('name', '')), # dataset_name_input
-                    gr.Textbox(value=first_config.get('x_text', '')), # x_input
-                    gr.Textbox(value=first_config.get('y_text', '')), # y_input
-                    gr.Textbox(value=first_config.get('z_text', '')), # z_input
-                    gr.Slider(value=first_config.get('degree', 3)), # degree_slider
-                    gr.ColorPicker(value=first_config.get('data_color', '#1f77b4')), # data_color_picker
-                    gr.ColorPicker(value=first_config.get('fit_color', '#ff7f0e')), # fit_color_picker
-                    gr.Dropdown(value=first_config.get('data_marker', 'circle')), # data_marker_dropdown
-                    gr.Dropdown(value=first_config.get('fit_line_style', 'solid')), # fit_line_dropdown
-                    gr.Dropdown(value=first_config.get('fit_type', 'polynomial')), # fit_type_dropdown
-                    gr.Checkbox(value=first_config.get('show_fit', True)), # show_fit_checkbox
-                    gr.Checkbox(value=first_config.get('show_data', True)), # show_data_checkbox
-                    gr.Textbox(value=first_config.get('x_errors_text', '')), # x_errors_input
-                    gr.Textbox(value=first_config.get('y_errors_text', '')), # y_errors_input
-                    gr.Checkbox(value=first_config.get('show_error_bars', False)), # show_error_bars_checkbox
-                    gr.Checkbox(value=first_config.get('visible', True)), # visible_checkbox
-                    gr.Checkbox(value=first_config.get('force_3d', False)), # force_3d_checkbox
-                    f"✅ Loaded {len(loaded_configs)} dataset(s). Active: {new_curve_selector_value}" # curve_status
+                    loaded_configs,
+                    new_curve_names,
+                    new_current_idx,
+                    gr.Dropdown(choices=new_curve_names, value=new_curve_selector_value),
+                    gr.update(value=f"✅ Configuration loaded from: {filepath}", visible=True),  # config status
+                    gr.Textbox(value=first_config.get('name', '')),
+                    gr.Textbox(value=first_config.get('x_text', '')),
+                    gr.Textbox(value=first_config.get('y_text', '')),
+                    gr.Textbox(value=first_config.get('z_text', '')),
+                    gr.Slider(value=first_config.get('degree', 3)),
+                    gr.ColorPicker(value=first_config.get('data_color', '#1f77b4')),
+                    gr.ColorPicker(value=first_config.get('fit_color', '#ff7f0e')),
+                    gr.Dropdown(value=first_config.get('data_marker', 'circle')),
+                    gr.Dropdown(value=first_config.get('fit_line_style', 'solid')),
+                    gr.Dropdown(value=first_config.get('fit_type', 'polynomial')),
+                    gr.Checkbox(value=first_config.get('show_fit', True)),
+                    gr.Checkbox(value=first_config.get('show_data', True)),
+                    gr.Textbox(value=first_config.get('x_errors_text', '')),
+                    gr.Textbox(value=first_config.get('y_errors_text', '')),
+                    gr.Checkbox(value=first_config.get('show_error_bars', False)),
+                    gr.Checkbox(value=first_config.get('visible', True)),
+                    gr.Checkbox(value=first_config.get('force_3d', False)),
+                    f"✅ Loaded {len(loaded_configs)} dataset(s). Active: {new_curve_selector_value}"
                 )
-            else: # Should not happen if loaded_configs is not empty check above passed
-                return (loaded_configs, new_curve_names, new_current_idx, gr.Dropdown(choices=new_curve_names, value=new_curve_selector_value),
-                        f"✅ Configuration loaded from: {filepath}", # config_management_status
-                        gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
-                        gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
-                        gr.update(), gr.update(), gr.update(), gr.update(),
-                        "No datasets loaded" # curve_status
-                        )
+            else:
+                return (
+                    loaded_configs, new_curve_names, new_current_idx, gr.Dropdown(choices=new_curve_names, value=new_curve_selector_value),
+                    gr.update(value=f"✅ Configuration loaded from: {filepath}", visible=True),  # config status
+                    gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(), gr.update(),
+                    gr.update(), gr.update(), gr.update(), gr.update(),
+                    "No datasets loaded"
+                )
 
 
         load_config_file_input.upload(
